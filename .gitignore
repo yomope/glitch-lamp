@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+*.pyc
+
+# Fichiers temporaires et générés
+temp_videos/
+uploads/
+exports/
+logs/
+*.log
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+System Volume Information/
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Fichiers de configuration locaux (optionnel - décommentez si vous ne voulez pas les commiter)
+# backend/settings.json
+# stats.json
+
+# Fichiers Windows
+*.exe
+*.bat
+
+# Fichiers de cache
+*.cache
+.cache/

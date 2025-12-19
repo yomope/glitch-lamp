@@ -1,0 +1,34 @@
+[
+  {
+    "name": "bloom",
+    "options": {
+      "threshold": 134,
+      "blur_amount": 5,
+      "intensity": 4.29
+    }
+  },
+  {
+    "name": "timeslit",
+    "options": {
+      "buffer_size": 62,
+      "fixed_bars": true
+    }
+  },
+  {
+    "name": "recompress",
+    "options": {
+      "bitrate": "100k",
+      "gop_size": 539
+    }
+  },
+  {
+    "name": "tracking",
+    "options": {
+      "draw_tesselation": true,
+      "line_thickness": 3,
+      "line_color": "#1f5de5",
+      "overlay_image_path": "",
+      "overlay_size": 44
+    }
+  }
+]

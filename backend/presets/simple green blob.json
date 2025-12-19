@@ -1,0 +1,39 @@
+[
+  {
+    "name": "colorise",
+    "options": {
+      "colormap": "VIRIDIS"
+    }
+  },
+  {
+    "name": "recompress",
+    "options": {
+      "bitrate": "20k",
+      "gop_size": 1415
+    }
+  },
+  {
+    "name": "color_adjust",
+    "options": {
+      "hue_shift": 0,
+      "saturation_scale": 2.5,
+      "luminosity_scale": 1,
+      "contrast": 1,
+      "brightness": 0
+    }
+  },
+  {
+    "name": "bloom",
+    "options": {
+      "threshold": 200,
+      "blur_amount": 21,
+      "intensity": 1
+    }
+  },
+  {
+    "name": "blur",
+    "options": {
+      "kernel_size": 50
+    }
+  }
+]

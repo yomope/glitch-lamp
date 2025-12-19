@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+websockets
+yt-dlp
+opencv-python-headless
+numpy
+mediapipe
+ffmpeg-python
+jinja2
+python-multipart

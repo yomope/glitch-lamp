@@ -1,0 +1,25 @@
+[
+  {
+    "name": "ascii",
+    "options": {
+      "font_scale": 0.5,
+      "color_mode": "color",
+      "charset_preset": "standard",
+      "custom_charset": ""
+    }
+  },
+  {
+    "name": "bloom",
+    "options": {
+      "threshold": 200,
+      "blur_amount": 21,
+      "intensity": 1
+    }
+  },
+  {
+    "name": "colorise",
+    "options": {
+      "colormap": "MAGMA"
+    }
+  }
+]

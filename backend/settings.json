@@ -1,0 +1,77 @@
+{
+  "duration": 2,
+  "duration_variation": 0,
+  "keywords": "Clown",
+  "playlist_url": null,
+  "local_file": null,
+  "active_effects": [
+    "point_tracker",
+    "color_adjust",
+    "double_exposure",
+    "tracking",
+    "solarize",
+    "datamosh"
+  ],
+  "effect_options": {},
+  "effect_chain": [
+    {
+      "name": "point_tracker",
+      "options": {
+        "num_points": 33,
+        "point_color": "#15718a",
+        "text_color": "#5916f7",
+        "spline_color": "#56f1e5",
+        "spline_type": "polyline",
+        "show_bbox": false
+      }
+    },
+    {
+      "name": "color_adjust",
+      "options": {
+        "hue_shift": 50,
+        "saturation_scale": 1.68,
+        "luminosity_scale": 1.1,
+        "contrast": 0.13,
+        "brightness": 99
+      }
+    },
+    {
+      "name": "double_exposure",
+      "options": {
+        "delay_frames": 4,
+        "opacity": 0.76
+      }
+    },
+    {
+      "name": "tracking",
+      "options": {
+        "draw_tesselation": false,
+        "line_thickness": 3,
+        "line_color": "#1ef90e",
+        "overlay_image_path": "",
+        "overlay_size": 33
+      }
+    },
+    {
+      "name": "solarize",
+      "options": {
+        "threshold": 10
+      }
+    },
+    {
+      "name": "datamosh",
+      "options": {
+        "gop_size": 1000,
+        "qscale": 31
+      }
+    }
+  ],
+  "randomize_effects": false,
+  "random_preset_mode": false,
+  "freestyle_mode": false,
+  "min_replays_before_next": 1,
+  "playback_speed": 1.0,
+  "video_quality": "480p",
+  "include_reels": true,
+  "screen_orientation": "portrait"
+}
