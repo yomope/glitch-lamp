@@ -179,6 +179,8 @@ PLAYLIST_FILE = os.path.join(backend_dir, "playlist.json")
 playlist_items: List[Dict[str, Any]] = []
 playlist_cursor = 0
 playlist_lock = threading.Lock()
+hls_access_lock = threading.Lock()
+last_hls_access_ts = 0.0
 
 
 def load_playlist() -> List[Dict[str, Any]]:
@@ -492,12 +494,37 @@ def start_cleanup_thread():
     thread.start()
     logger.info("Started automatic cleanup thread")
 
+
+def note_hls_access():
+    """Marque un accès récent au flux HLS (playlist ou segment)."""
+    global last_hls_access_ts
+    with hls_access_lock:
+        last_hls_access_ts = time.time()
+
+
+def has_recent_hls_viewer(window_seconds: float = 30.0) -> bool:
+    """Indique s'il y a eu un accès HLS récent (mpv, player externe)."""
+    with hls_access_lock:
+        if last_hls_access_ts <= 0:
+            return False
+        return (time.time() - last_hls_access_ts) < window_seconds
+
 # Mount static files
 app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 app.mount("/videos", StaticFiles(directory="temp_videos"), name="videos")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/exports", StaticFiles(directory="exports"), name="exports")
 app.mount("/stream", StaticFiles(directory=HLS_DIR), name="stream")
+
+
+@app.middleware("http")
+async def hls_access_middleware(request, call_next):
+    # Si la requête cible le flux HLS (playlist ou segments), on note l'accès.
+    path = request.url.path or ""
+    if path.startswith("/stream/"):
+        note_hls_access()
+    response = await call_next(request)
+    return response
 
 @app.on_event("startup")
 async def startup_event():
@@ -867,7 +894,7 @@ async def generate_next_clip_async(force: bool = False):
     """Génère le prochain clip pour le streaming (fonction async).
 
     - force=True : génération explicite (même sans clients).
-    - force=False : génération seulement si nécessaire (clients connectés, pas de next prêt).
+    - force=False : génération seulement si nécessaire (clients connectés ou viewer HLS récent, pas de next prêt).
     """
     global is_generating_next
     
@@ -880,14 +907,15 @@ async def generate_next_clip_async(force: bool = False):
     try:
         state_snapshot = streaming_service.get_state()
         client_count = streaming_service.client_count()
+        has_hls_viewer = has_recent_hls_viewer()
 
         if not force:
             if state_snapshot.get("next_video"):
                 logger.debug("Skip génération: next déjà prêt, rien à faire.")
                 return {"status": "skipped", "reason": "next_ready"}
-            if client_count == 0:
-                logger.debug("Skip génération: aucun client connecté.")
-                return {"status": "skipped", "reason": "no_clients"}
+            if client_count == 0 and not has_hls_viewer:
+                logger.debug("Skip génération: aucun client connecté ni viewer HLS récent.")
+                return {"status": "skipped", "reason": "no_clients_or_hls"}
 
         logger.info("Génération du prochain clip pour le streaming...")
         # Générer le clip en arrière-plan
@@ -948,9 +976,10 @@ async def streaming_loop():
         try:
             await asyncio.sleep(1)  # Vérifier toutes les secondes
             client_count = streaming_service.client_count()
+            has_hls_viewer = has_recent_hls_viewer()
 
-            # Sans clients, on fige la lecture et on évite de générer inutilement
-            if client_count == 0:
+            # Sans clients WebSocket ni viewer HLS récent, on fige la lecture et on évite de générer
+            if client_count == 0 and not has_hls_viewer:
                 if streaming_service.is_playing:
                     try:
                         await streaming_service.pause()
@@ -962,7 +991,7 @@ async def streaming_loop():
                     try:
                         await streaming_service.play()
                     except Exception as e:
-                        logger.error(f"Lecture auto (clients présents) échouée: {e}")
+                        logger.error(f"Lecture auto (clients présents/HLS) échouée: {e}")
 
             repeats_target = max(0, getattr(current_settings, "min_replays_before_next", 0))
             
