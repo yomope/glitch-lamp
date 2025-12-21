@@ -484,7 +484,6 @@ async function loadSettings() {
         document.getElementById('duration').value = settings.duration;
         document.getElementById('duration-variation').value = settings.duration_variation;
         document.getElementById('video-quality').value = settings.video_quality || 'best';
-        document.getElementById('screen-orientation').value = settings.screen_orientation || 'auto';
         document.getElementById('include-reels').checked = settings.include_reels !== false;
         document.getElementById('min-replays').value = settings.min_replays_before_next || 1;
         
@@ -512,18 +511,7 @@ async function loadSettings() {
     }
 }
 
-document.getElementById('playback-speed').addEventListener('input', (e) => {
-    document.getElementById('playback-speed-val').textContent = e.target.value;
-});
-
-// Auto-save speed on change for real-time update
-document.getElementById('playback-speed').addEventListener('change', async (e) => {
-    // Trigger save
-    document.getElementById('save-settings').click();
-});
-
-document.getElementById('save-settings').addEventListener('click', async () => {
-    // Collect chain from DOM
+function collectSettings() {
     const cards = Array.from(effectChainContainer.querySelectorAll('.effect-item'));
     const chainToSave = cards.map(card => {
         const select = card.querySelector('select');
@@ -547,14 +535,13 @@ document.getElementById('save-settings').addEventListener('click', async () => {
     });
 
     const localFileSelect = document.getElementById('local-file-select');
-    const settings = {
+    return {
         keywords: document.getElementById('keywords').value,
         playlist_url: document.getElementById('playlist-url').value || null,
         local_file: localFileSelect && localFileSelect.value ? localFileSelect.value : null,
         duration: parseInt(document.getElementById('duration').value) || 5,
         duration_variation: parseInt(document.getElementById('duration-variation').value) || 0,
         video_quality: document.getElementById('video-quality').value || 'best',
-        screen_orientation: document.getElementById('screen-orientation').value || 'auto',
         include_reels: document.getElementById('include-reels').checked,
         min_replays_before_next: parseInt(document.getElementById('min-replays').value) || 1,
         playback_speed: parseFloat(document.getElementById('playback-speed').value) || 1.0,
@@ -564,8 +551,30 @@ document.getElementById('save-settings').addEventListener('click', async () => {
         effect_options: {},
         effect_chain: chainToSave
     };
+}
 
+async function saveSettings() {
+    const settings = collectSettings();
+    await fetch('/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+    });
+}
+
+document.getElementById('playback-speed').addEventListener('input', (e) => {
+    document.getElementById('playback-speed-val').textContent = e.target.value;
+});
+
+// Auto-save speed on change for real-time update
+document.getElementById('playback-speed').addEventListener('change', async (e) => {
+    // Trigger save
+    document.getElementById('save-settings').click();
+});
+
+document.getElementById('save-settings').addEventListener('click', async () => {
     try {
+        const settings = collectSettings();
         await fetch('/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

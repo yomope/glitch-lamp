@@ -10,6 +10,8 @@ import time
 
 # Add backend dir to PATH to find ffmpeg.exe if present (Windows)
 backend_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(backend_dir, os.pardir))
+frontend_dir = os.path.join(project_root, "frontend")
 ffmpeg_exe_path = os.path.join(backend_dir, "ffmpeg.exe")
 if os.path.exists(ffmpeg_exe_path):
     print(f"Found ffmpeg.exe in {backend_dir}, adding to PATH")
@@ -36,6 +38,9 @@ import random
 import asyncio
 import glob
 import shutil
+import subprocess
+import tempfile
+import math
 from datetime import datetime
 
 from backend.services.youtube_service import YouTubeService
@@ -43,6 +48,35 @@ from backend.services.effect_manager import EffectManager
 from backend.services.stats_service import StatsService
 from backend.services.streaming_service import streaming_service
 from backend.plugins.base import VideoEffect
+
+def detect_uvicorn_binding(default_host="0.0.0.0", default_port=8000):
+    """Récupère l'hôte et le port utilisés par uvicorn (CLI/env)."""
+    host = os.environ.get("UVICORN_HOST") or os.environ.get("HOST") or default_host
+    port_env = os.environ.get("UVICORN_PORT") or os.environ.get("PORT")
+    try:
+        port = int(port_env) if port_env else default_port
+    except (TypeError, ValueError):
+        port = default_port
+
+    argv = sys.argv[1:]
+
+    def _arg_value(flag: str):
+        if flag in argv:
+            idx = argv.index(flag)
+            if idx + 1 < len(argv):
+                return argv[idx + 1]
+        return None
+
+    host_arg = _arg_value("--host") or _arg_value("-h")
+    port_arg = _arg_value("--port") or _arg_value("-p")
+    if host_arg:
+        host = host_arg
+    if port_arg:
+        try:
+            port = int(port_arg)
+        except ValueError:
+            pass
+    return host, port
 
 def load_all_plugins(manager: EffectManager):
     """Dynamically discover and register every VideoEffect in backend.plugins."""
@@ -109,7 +143,6 @@ class Settings(BaseModel):
     playback_speed: float = 1.0
     video_quality: str = "best"  # best, 1080p, 720p, 480p
     include_reels: bool = True
-    screen_orientation: str = "auto"  # auto, portrait, landscape, portrait-left, portrait-right
 
 SETTINGS_FILE = os.path.join(backend_dir, "settings.json")
 PRESETS_DIR = os.path.join(backend_dir, "presets")
@@ -142,6 +175,272 @@ current_settings = load_settings_from_disk()
 os.makedirs("temp_videos", exist_ok=True)
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("exports", exist_ok=True)
+PLAYLIST_FILE = os.path.join(backend_dir, "playlist.json")
+playlist_items: List[Dict[str, Any]] = []
+playlist_cursor = 0
+playlist_lock = threading.Lock()
+
+
+def load_playlist() -> List[Dict[str, Any]]:
+    try:
+        with open(PLAYLIST_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, list) else []
+    except FileNotFoundError:
+        return []
+    except Exception as e:
+        logger.error(f"Failed to load playlist: {e}")
+        return []
+
+
+def save_playlist():
+    try:
+        with open(PLAYLIST_FILE, "w", encoding="utf-8") as f:
+            json.dump(playlist_items, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save playlist: {e}")
+
+
+playlist_items = load_playlist()
+HLS_DIR = os.path.join(os.getcwd(), "hls")
+os.makedirs(HLS_DIR, exist_ok=True)
+
+hls_segments = []  # liste de tuples (seq, filename, duration)
+hls_lock = threading.Lock()
+hls_seq = 0
+HLS_MAX_SEGMENTS = 60
+HLS_PLAYLIST = os.path.join(HLS_DIR, "stream.m3u8")
+
+
+def rebuild_hls_from_playlist():
+    """Reconstruit l'état HLS en mémoire à partir du fichier stream.m3u8."""
+    global hls_segments, hls_seq
+    if not os.path.exists(HLS_PLAYLIST):
+        return
+    try:
+        with open(HLS_PLAYLIST, "r", encoding="utf-8") as f:
+            lines = [l.strip() for l in f.readlines()]
+        media_seq = 0
+        for line in lines:
+            if line.startswith("#EXT-X-MEDIA-SEQUENCE:"):
+                try:
+                    media_seq = int(line.split(":")[1])
+                except Exception:
+                    media_seq = 0
+                break
+        segments = []
+        for i, line in enumerate(lines):
+            if line.startswith("#EXTINF:") and i + 1 < len(lines):
+                try:
+                    dur = float(line.replace("#EXTINF:", "").replace(",", ""))
+                except ValueError:
+                    dur = 0.0
+                fname = lines[i + 1]
+                if os.path.exists(os.path.join(HLS_DIR, fname)):
+                    seq = media_seq + len(segments)
+                    segments.append((seq, fname, dur))
+        if segments:
+            hls_segments = segments
+            hls_seq = hls_segments[-1][0] + 1
+    except Exception as e:
+        logger.error(f"Rebuild HLS playlist failed: {e}")
+
+
+def rebuild_hls_from_filesystem():
+    """Fallback: reconstruit l'état depuis les fichiers .ts présents."""
+    global hls_segments, hls_seq
+    try:
+        ts_files = [f for f in os.listdir(HLS_DIR) if f.endswith(".ts")]
+        ts_files.sort()
+        segments = []
+        for idx, fname in enumerate(ts_files):
+            if os.path.exists(os.path.join(HLS_DIR, fname)):
+                segments.append((idx, fname, 0.0))
+        if segments:
+            hls_segments = segments
+            hls_seq = hls_segments[-1][0] + 1
+    except Exception as e:
+        logger.error(f"Rebuild HLS from filesystem failed: {e}")
+
+
+def reset_hls():
+    """Réinitialise complètement le buffer HLS (segments + playlist)."""
+    global hls_segments, hls_seq
+    with hls_lock:
+        hls_segments = []
+        hls_seq = 0
+        try:
+            if os.path.isdir(HLS_DIR):
+                for fn in os.listdir(HLS_DIR):
+                    try:
+                        os.remove(os.path.join(HLS_DIR, fn))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+
+def write_hls_playlist():
+    """Réécrit la playlist HLS à partir des segments connus."""
+    global hls_segments
+    # Nettoyer les entrées dont le fichier n'existe plus
+    hls_segments = sorted(
+        [(seq, fname, dur) for (seq, fname, dur) in hls_segments if os.path.exists(os.path.join(HLS_DIR, fname))],
+        key=lambda x: x[0]
+    )
+    if not hls_segments:
+        return
+    target = max(1, math.ceil(max(seg[2] for seg in hls_segments)))
+    media_seq = hls_segments[0][0]
+    lines = [
+        "#EXTM3U",
+        "#EXT-X-VERSION:3",
+        "#EXT-X-PLAYLIST-TYPE:EVENT",
+        "#EXT-X-INDEPENDENT-SEGMENTS",
+        f"#EXT-X-TARGETDURATION:{target}",
+        f"#EXT-X-MEDIA-SEQUENCE:{media_seq}",
+    ]
+    for _, fname, dur in hls_segments:
+        lines.append(f"#EXTINF:{dur:.3f},")
+        lines.append(fname)
+    lines.append("#EXT-X-DISCONTINUITY")
+    with open(HLS_PLAYLIST, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def append_clip_to_hls(video_path: str, segment_time: int = 4):
+    """Segmenter un clip en TS et l'ajouter à la playlist live."""
+    global hls_seq, hls_segments
+    if not os.path.exists(video_path):
+        return
+
+    with hls_lock:
+        tmp_dir = tempfile.mkdtemp(prefix="hls_seg_")
+        start_number = hls_seq
+        unique_prefix = f"seg_{int(time.time() * 1000)}_{start_number:010d}"
+        segment_pattern = os.path.join(tmp_dir, f"{unique_prefix}_%03d.ts")
+        playlist_tmp = os.path.join(tmp_dir, "playlist.m3u8")
+
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            video_path,
+            "-codec",
+            "copy",
+            "-map",
+            "0",
+            "-f",
+            "segment",
+            "-segment_time",
+            str(segment_time),
+            "-segment_format",
+            "mpegts",
+            "-start_number",
+            "0",
+            "-segment_list",
+            playlist_tmp,
+            "-segment_list_type",
+            "m3u8",
+            segment_pattern,
+        ]
+
+        try:
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120)
+        except Exception as e:
+            logger.error(f"Segmentation HLS échouée: {e}")
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            return
+
+        # Lire la playlist générée pour récupérer durées et fichiers
+        new_segments = []
+        try:
+            with open(playlist_tmp, "r", encoding="utf-8") as f:
+                lines = [l.strip() for l in f.readlines()]
+            for i, line in enumerate(lines):
+                if line.startswith("#EXTINF:") and i + 1 < len(lines):
+                    try:
+                        dur = float(line.replace("#EXTINF:", "").replace(",", ""))
+                    except ValueError:
+                        dur = segment_time
+                    fname = os.path.basename(lines[i + 1])
+                    new_segments.append((start_number + len(new_segments), fname, dur))
+        except Exception as e:
+            logger.error(f"Lecture playlist HLS temp échouée: {e}")
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            return
+
+        # Déplacer les segments dans le dossier HLS
+        for _, fname, _ in new_segments:
+            src = os.path.join(tmp_dir, fname)
+            dst = os.path.join(HLS_DIR, fname)
+            try:
+                shutil.move(src, dst)
+            except Exception as e:
+                logger.warning(f"Impossible de déplacer {fname} vers HLS: {e}")
+
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+        # Mettre à jour la liste globale
+        hls_segments.extend(new_segments)
+        hls_seq = new_segments[-1][0] + 1 if new_segments else hls_seq
+
+        # Garder seulement les segments récents
+        if len(hls_segments) > HLS_MAX_SEGMENTS:
+            to_remove = hls_segments[:-HLS_MAX_SEGMENTS]
+            hls_segments = hls_segments[-HLS_MAX_SEGMENTS:]
+            for _, fname, _ in to_remove:
+                try:
+                    os.remove(os.path.join(HLS_DIR, fname))
+                except Exception:
+                    pass
+
+        # Nettoyer les entrées dont le fichier a disparu
+        hls_segments = [(seq, fname, dur) for (seq, fname, dur) in hls_segments if os.path.exists(os.path.join(HLS_DIR, fname))]
+
+        write_hls_playlist()
+
+def hls_segments_state():
+    """Retourne l'état courant des segments HLS."""
+    # Reconstruire à chaque requête pour refléter l'état disque et dédupliquer
+    if os.path.exists(HLS_PLAYLIST):
+        rebuild_hls_from_playlist()
+    elif not hls_segments:
+        rebuild_hls_from_filesystem()
+    write_hls_playlist()
+    with hls_lock:
+        return [
+            {
+                "seq": seq,
+                "filename": fname,
+                "duration": dur,
+                "exists": os.path.exists(os.path.join(HLS_DIR, fname))
+            } for (seq, fname, dur) in hls_segments
+        ]
+
+def delete_hls_segment(seq: int):
+    """Supprime un segment HLS par séquence."""
+    global hls_segments
+    with hls_lock:
+        to_delete = [fname for (s, fname, _) in hls_segments if s == seq]
+        hls_segments = [(s, fname, dur) for (s, fname, dur) in hls_segments if s != seq]
+        for fname in to_delete:
+            try:
+                os.remove(os.path.join(HLS_DIR, fname))
+            except Exception:
+                pass
+        write_hls_playlist()
+
+
+def get_next_playlist_entry() -> Optional[Dict[str, Any]]:
+    """Retourne la prochaine entrée de playlist (rotation circulaire)."""
+    global playlist_cursor
+    with playlist_lock:
+        if not playlist_items:
+            return None
+        entry = playlist_items[playlist_cursor % len(playlist_items)]
+        playlist_cursor = (playlist_cursor + 1) % len(playlist_items)
+        return entry.copy()
 
 # Cache pour éviter les re-téléchargements (video_url + start_time + duration -> processed_path)
 video_cache = {}
@@ -194,14 +493,17 @@ def start_cleanup_thread():
     logger.info("Started automatic cleanup thread")
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 app.mount("/videos", StaticFiles(directory="temp_videos"), name="videos")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/exports", StaticFiles(directory="exports"), name="exports")
+app.mount("/stream", StaticFiles(directory=HLS_DIR), name="stream")
 
 @app.on_event("startup")
 async def startup_event():
     import socket
+    uvicorn_host, uvicorn_port = detect_uvicorn_binding()
+    reset_hls()
     # Obtenir l'IP locale
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -213,9 +515,11 @@ async def startup_event():
     
     logger.info("="*60)
     logger.info("🚀 Glitch Video Player is ready!")
+    logger.info(f"Serveur uvicorn: http://{uvicorn_host}:{uvicorn_port}")
     logger.info(f"Frontend available at:")
-    logger.info(f"  - Local: http://127.0.0.1:8000/static/index.html")
-    logger.info(f"  - Network: http://{local_ip}:8000/static/index.html")
+    logger.info(f"  - Local: http://127.0.0.1:{uvicorn_port}/static/index.html")
+    logger.info(f"  - Network: http://{local_ip}:{uvicorn_port}/static/index.html")
+    logger.info(f"Flux HLS: http://{local_ip}:{uvicorn_port}/stream/stream.m3u8")
     logger.info("="*60)
     # Nettoyage initial et démarrage du thread
     cleanup_temp_files()
@@ -317,6 +621,7 @@ def generate_clip_sync(settings: Settings, max_retries=3):
             video_url = None
             video = None
             raw_path = None
+            playlist_entry = None
             
             # Priorité 1: Fichier local uploadé
             if settings.local_file:
@@ -328,6 +633,21 @@ def generate_clip_sync(settings: Settings, max_retries=3):
                     video_duration = settings.duration
                 else:
                     logger.warning(f"Local file not found: {settings.local_file}")
+
+            # Priorité 2: Playlist interne
+            if not raw_path and not video_url:
+                playlist_entry = get_next_playlist_entry()
+                if playlist_entry:
+                    if playlist_entry.get("local_file"):
+                        candidate = os.path.join("uploads", playlist_entry["local_file"])
+                        if os.path.exists(candidate):
+                            raw_path = candidate
+                            logger.info(f"Using playlist local file: {playlist_entry['local_file']}")
+                        else:
+                            logger.warning(f"Playlist file not found: {playlist_entry['local_file']}")
+                    elif playlist_entry.get("url"):
+                        video_url = playlist_entry["url"]
+                        logger.info(f"Using playlist url: {video_url}")
             
             # Priorité 2: Playlist YouTube
             if not raw_path and settings.playlist_url:
@@ -538,13 +858,17 @@ async def get_clip():
     if state["current_video"]:
         return {"url": state["current_video"]}
     # Générer un nouveau clip si aucun n'est disponible
-    result = await generate_next_clip_async()
+    result = await generate_next_clip_async(force=True)
     if result:
         return {"url": result["url"]}
     return {"url": None}
 
-async def generate_next_clip_async():
-    """Génère le prochain clip pour le streaming (fonction async)."""
+async def generate_next_clip_async(force: bool = False):
+    """Génère le prochain clip pour le streaming (fonction async).
+
+    - force=True : génération explicite (même sans clients).
+    - force=False : génération seulement si nécessaire (clients connectés, pas de next prêt).
+    """
     global is_generating_next
     
     if is_generating_next:
@@ -554,9 +878,21 @@ async def generate_next_clip_async():
     loop = asyncio.get_event_loop()
     
     try:
+        state_snapshot = streaming_service.get_state()
+        client_count = streaming_service.client_count()
+
+        if not force:
+            if state_snapshot.get("next_video"):
+                logger.debug("Skip génération: next déjà prêt, rien à faire.")
+                return {"status": "skipped", "reason": "next_ready"}
+            if client_count == 0:
+                logger.debug("Skip génération: aucun client connecté.")
+                return {"status": "skipped", "reason": "no_clients"}
+
         logger.info("Génération du prochain clip pour le streaming...")
         # Générer le clip en arrière-plan
         url = await loop.run_in_executor(None, generate_clip_sync, current_settings)
+        repeats_target = max(0, getattr(current_settings, "min_replays_before_next", 0))
         
         # Obtenir la durée du clip
         video_path = url.replace("/videos/", "temp_videos/")
@@ -577,27 +913,33 @@ async def generate_next_clip_async():
         # Si c'est la première vidéo, la définir comme actuelle
         state = streaming_service.get_state()
         if not state["current_video"]:
-            streaming_service.set_current_video(url, duration)
-            await streaming_service.switch_video(url, duration)
+            streaming_service.set_current_video(url, duration, repeats_target=repeats_target, path=video_path)
+            await streaming_service.switch_video(url, duration, repeats_target=repeats_target, path=video_path)
             logger.info(f"Première vidéo diffusée: {url}")
         else:
             # Sinon, la préparer comme prochaine vidéo
             streaming_service.set_next_video(url)
             logger.info(f"Prochaine vidéo préparée: {url}")
+
+        # Ajouter au flux HLS continu
+        try:
+            append_clip_to_hls(video_path)
+        except Exception as e:
+            logger.error(f"Erreur lors de l'ajout au flux HLS: {e}")
         
         return {"url": url, "duration": duration, "status": "ready"}
     except Exception as e:
         logger.error(f"Error generating clip: {e}")
         # Réessayer après un délai
         await asyncio.sleep(5)
-        asyncio.create_task(generate_next_clip_async())
+        asyncio.create_task(generate_next_clip_async(force=force))
     finally:
         is_generating_next = False
 
 @app.post("/streaming/generate-next")
 async def generate_next_clip_endpoint():
     """Endpoint pour générer manuellement le prochain clip."""
-    asyncio.create_task(generate_next_clip_async())
+    asyncio.create_task(generate_next_clip_async(force=True))
     return {"status": "generating"}
 
 async def streaming_loop():
@@ -605,6 +947,24 @@ async def streaming_loop():
     while True:
         try:
             await asyncio.sleep(1)  # Vérifier toutes les secondes
+            client_count = streaming_service.client_count()
+
+            # Sans clients, on fige la lecture et on évite de générer inutilement
+            if client_count == 0:
+                if streaming_service.is_playing:
+                    try:
+                        await streaming_service.pause()
+                    except Exception as e:
+                        logger.error(f"Pause auto (pas de clients) échouée: {e}")
+                continue
+            else:
+                if not streaming_service.is_playing:
+                    try:
+                        await streaming_service.play()
+                    except Exception as e:
+                        logger.error(f"Lecture auto (clients présents) échouée: {e}")
+
+            repeats_target = max(0, getattr(current_settings, "min_replays_before_next", 0))
             
             state = streaming_service.get_state()
             if not state["current_video"]:
@@ -620,6 +980,20 @@ async def streaming_loop():
             if duration > 0 and current_pos >= duration - 2.0:
                 # Si on a déjà une prochaine vidéo préparée, faire la transition
                 if state["next_video"]:
+                    # Enregistrer le clip terminé (en tenant compte des répétitions réalisées)
+                    repeats_done = max(1, streaming_service.repeat_count + 1)
+                    try:
+                        stats_service.record_clip_played(duration * repeats_done)
+                    except Exception as e:
+                        logger.error(f"Stats record failed: {e}")
+                    try:
+                        await add_to_history_async({
+                            "url": state["current_video"],
+                            "duration": duration * repeats_done
+                        })
+                    except Exception as e:
+                        logger.error(f"History record failed: {e}")
+                    
                     # Obtenir la durée de la prochaine vidéo
                     next_video_path = state["next_video"].replace("/videos/", "temp_videos/")
                     next_duration = duration
@@ -636,12 +1010,18 @@ async def streaming_loop():
                         except:
                             pass
                     
-                    await streaming_service.switch_video(state["next_video"], next_duration)
+                    await streaming_service.switch_video(state["next_video"], next_duration, repeats_target=repeats_target, path=next_video_path)
                     # Générer la prochaine vidéo en arrière-plan
                     asyncio.create_task(generate_next_clip_async())
-                elif not is_generating_next:
-                    # Sinon, générer la prochaine vidéo maintenant
-                    asyncio.create_task(generate_next_clip_async())
+                else:
+                    # Pas de prochaine vidéo prête : boucler en réinjectant le clip courant dans le HLS
+                    current_path = streaming_service.current_video_path
+                    if current_path and os.path.exists(current_path):
+                        append_clip_to_hls(current_path)
+                        streaming_service.note_repeat()
+                        logger.info("Boucle serveur: réinjection du clip courant dans le flux HLS en attendant la prochaine vidéo")
+                    if not is_generating_next:
+                        asyncio.create_task(generate_next_clip_async())
             
         except Exception as e:
             logger.error(f"Error in streaming loop: {e}")
@@ -736,6 +1116,92 @@ async def upload_video(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Upload error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/uploads-list")
+async def list_uploaded_files():
+    """Liste les fichiers présents dans le dossier uploads."""
+    try:
+        files = []
+        for filename in os.listdir("uploads"):
+            path = os.path.join("uploads", filename)
+            if os.path.isfile(path):
+                stat = os.stat(path)
+                files.append({
+                    "filename": filename,
+                    "size": stat.st_size,
+                    "created": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                })
+        files.sort(key=lambda x: x["created"], reverse=True)
+        return files
+    except Exception as e:
+        logger.error(f"Error listing uploads: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/playlist")
+async def get_playlist():
+    """Retourne la playlist courante."""
+    with playlist_lock:
+        return playlist_items
+
+@app.get("/ui/playlist")
+async def playlist_ui():
+    """Page de gestion des sources de playlist."""
+    return FileResponse(os.path.join(frontend_dir, "playlist.html"))
+
+@app.get("/ui/hls")
+async def hls_ui():
+    """Page de gestion des segments HLS."""
+    return FileResponse(os.path.join(frontend_dir, "hls.html"))
+
+@app.get("/api/stream/segments")
+async def get_hls_segments():
+    """Retourne la liste des segments HLS connus."""
+    return hls_segments_state()
+
+@app.post("/api/stream/reset")
+async def reset_hls_endpoint():
+    """Réinitialise complètement la playlist HLS (segments + playlist)."""
+    reset_hls()
+    return {"status": "reset"}
+
+@app.delete("/api/stream/segment/{seq}")
+async def delete_hls_segment_endpoint(seq: int):
+    delete_hls_segment(seq)
+    return {"status": "deleted", "seq": seq}
+
+@app.post("/playlist")
+async def add_playlist_item(item: Dict[str, Any]):
+    """Ajoute un élément à la playlist (url ou local_file requis)."""
+    url = item.get("url")
+    local_file = item.get("local_file")
+    title = item.get("title") or ""
+    if not url and not local_file:
+        raise HTTPException(status_code=400, detail="url ou local_file requis")
+    with playlist_lock:
+        next_id = (max([it.get("id", 0) for it in playlist_items], default=0) + 1)
+        entry = {"id": next_id, "url": url, "local_file": local_file, "title": title}
+        playlist_items.append(entry)
+        save_playlist()
+        return entry
+
+@app.delete("/playlist/{item_id}")
+async def delete_playlist_item(item_id: int):
+    """Supprime un élément de playlist par id."""
+    with playlist_lock:
+        before = len(playlist_items)
+        playlist_items[:] = [it for it in playlist_items if it.get("id") != item_id]
+        if len(playlist_items) == before:
+            raise HTTPException(status_code=404, detail="Item not found")
+        save_playlist()
+        return {"status": "deleted"}
+
+@app.post("/playlist/clear")
+async def clear_playlist():
+    """Vide la playlist."""
+    with playlist_lock:
+        playlist_items.clear()
+        save_playlist()
+        return {"status": "cleared"}
 
 @app.get("/uploads/{filename}")
 async def get_uploaded_file(filename: str):
@@ -877,4 +1343,5 @@ async def import_preset(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    host, port = detect_uvicorn_binding()
+    uvicorn.run(app, host=host, port=port)

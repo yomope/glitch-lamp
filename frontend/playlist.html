@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glitch Lamp - Playlist</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: #06080e; color: #e9f1fb; font-family: 'Space Grotesk', 'Segoe UI', sans-serif; }
+    .wrapper { max-width: 1080px; margin: 20px auto; padding: 20px; background: rgba(14,19,28,0.92); border:1px solid #1d2738; border-radius:14px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+    h1 { margin: 0 0 16px 0; font-size: 22px; letter-spacing: 0.01em; }
+    .card { background:#0d1320; border:1px solid #1d2738; border-radius:12px; padding:16px; margin-bottom:16px; }
+    label { display:block; margin:0 0 6px 0; color:#8da0b3; font-size:13px; }
+    input[type="text"], select { width:100%; padding:10px 12px; background:#0b111d; border:1px solid #1d2738; border-radius:10px; color:#e9f1fb; }
+    .btn { border:1px solid transparent; background:#19e1a3; color:#04120b; padding:10px 14px; border-radius:10px; font-weight:700; letter-spacing:0.02em; cursor:pointer; transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease; }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(25,225,163,0.25); }
+    .btn:active { transform: translateY(0); }
+    .btn.secondary { background: transparent; border-color: #1d2738; color: #e9f1fb; }
+    .grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    ul { list-style:none; padding:0; margin:0; }
+    li { border:1px solid #1d2738; border-radius:10px; padding:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; background:#0f1726; }
+    .small { color:#8da0b3; font-size:13px; }
+    #toast { position:fixed; top:16px; right:16px; padding:10px 14px; background:#0d1320; border:1px solid #1d2738; border-radius:10px; color:#e9f1fb; opacity:0; transition:opacity 0.2s ease; }
+    #toast.show { opacity:1; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>Gestion de la playlist</h1>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label>URL (YouTube ou autre)</label>
+          <input type="text" id="playlist-url" placeholder="https://...">
+        </div>
+        <div>
+          <label>Fichier uploadé</label>
+          <select id="playlist-local-file">
+            <option value="">-- Aucun --</option>
+          </select>
+        </div>
+        <div>
+          <label>Titre (optionnel)</label>
+          <input type="text" id="playlist-title" placeholder="Titre pour repère">
+        </div>
+      </div>
+      <div style="margin-top:12px; display:flex; gap:10px;">
+        <button class="btn" id="add-playlist-item">Ajouter à la playlist</button>
+        <button class="btn secondary" id="clear-playlist">Vider la playlist</button>
+      </div>
+      <p id="add-status" class="small"></p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Playlist actuelle</h3>
+      <ul id="playlist-list"></ul>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <script src="playlist.js?v=1"></script>
+</body>
+</html>

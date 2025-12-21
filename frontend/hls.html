@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glitch Lamp - Playlist HLS</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    body { background: #06080e; color: #e9f1fb; font-family: 'Space Grotesk', 'Segoe UI', sans-serif; }
+    .wrapper { max-width: 1080px; margin: 20px auto; padding: 20px; background: rgba(14,19,28,0.92); border:1px solid #1d2738; border-radius:14px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+    h1 { margin: 0 0 16px 0; font-size: 22px; letter-spacing: 0.01em; }
+    .card { background:#0d1320; border:1px solid #1d2738; border-radius:12px; padding:16px; margin-bottom:16px; }
+    .btn { border:1px solid transparent; background:#19e1a3; color:#04120b; padding:10px 14px; border-radius:10px; font-weight:700; letter-spacing:0.02em; cursor:pointer; transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease; }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(25,225,163,0.25); }
+    .btn:active { transform: translateY(0); }
+    .btn.secondary { background: transparent; border-color: #1d2738; color: #e9f1fb; }
+    ul { list-style:none; padding:0; margin:0; max-height: 420px; overflow-y: auto; scrollbar-color: #233047 #0d1320; }
+    ul::-webkit-scrollbar { width: 10px; }
+    ul::-webkit-scrollbar-track { background: #0d1320; }
+    ul::-webkit-scrollbar-thumb { background: #233047; border-radius: 8px; }
+    li { border:1px solid #1d2738; border-radius:10px; padding:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; background:#0f1726; position: relative; }
+    .small { color:#8da0b3; font-size:13px; }
+    #toast { position:fixed; top:16px; right:16px; padding:10px 14px; background:#0d1320; border:1px solid #1d2738; border-radius:10px; color:#e9f1fb; opacity:0; transition:opacity 0.2s ease; }
+    #toast.show { opacity:1; }
+    .preview-card { position: fixed; pointer-events: none; background:#0d1320; border:1px solid #1d2738; border-radius:10px; padding:6px; box-shadow: 0 12px 30px rgba(0,0,0,0.45); z-index: 9999; }
+    .preview-card video { display:block; width:220px; height:124px; border-radius:8px; background:#000; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>Gestion des segments HLS</h1>
+
+    <div class="card" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <a class="btn secondary" href="/stream/stream.m3u8" target="_blank">Voir la playlist</a>
+      <a class="btn secondary" href="/static/index.html" target="_blank">Ouvrir le lecteur</a>
+      <button class="btn" id="refresh">Rafraîchir</button>
+      <button class="btn secondary" id="reset">Reset HLS</button>
+      <span id="status" class="small"></span>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Segments en rotation</h3>
+      <ul id="segments"></ul>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <script src="/static/hls.js?v=5"></script>
+</body>
+</html>

@@ -25,46 +25,6 @@ video {
     transform-origin: center center;
 }
 
-/* Orientations avec rotation */
-body.orientation-landscape video {
-    object-fit: cover;
-    width: 100%;
-    height: 100%;
-    transform: rotate(0deg);
-}
-
-body.orientation-portrait video,
-body.orientation-portrait-right video {
-    object-fit: cover;
-    width: 100vh;
-    height: 100vw;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%) rotate(90deg);
-}
-
-body.orientation-portrait-left video {
-    object-fit: cover;
-    width: 100vh;
-    height: 100vw;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%) rotate(-90deg);
-}
-
-body.orientation-upside-down video {
-    object-fit: cover;
-    width: 100%;
-    height: 100%;
-    transform: rotate(180deg);
-}
-
-body.orientation-auto video {
-    /* Détection automatique basée sur les dimensions de la vidéo */
-    object-fit: cover;
-    /* Rotation sera appliquée dynamiquement par JavaScript */
-}
-
 .hidden {
     opacity: 0;
     pointer-events: none;
