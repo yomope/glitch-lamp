@@ -1,0 +1,26 @@
+[Unit]
+Description=Glitch Lamp lecture mpv sur tty1
+After=glitch-backend.service network-online.target systemd-user-sessions.service getty-pre.target plymouth-quit.service systemd-vconsole-setup.service
+Wants=glitch-backend.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/yomope/glitch-lamp
+User=root
+# Accès GPU/DRM pour mpv en mode console
+SupplementaryGroups=video render
+# Force l'usage de la VT1 sans HUP à la libération
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=no
+StandardInput=tty-force
+StandardOutput=journal+console
+StandardError=journal+console
+ExecStartPre=/usr/bin/chvt 1
+ExecStart=/home/yomope/glitch-lamp/scripts/run_mpv-2.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

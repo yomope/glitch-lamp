@@ -1,0 +1,15 @@
+[Unit]
+Description=Glitch Lamp lecture mpv (service utilisateur)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/yomope/glitch-lamp
+Environment=HOME=/home/yomope
+ExecStart=/usr/bin/mpv --no-terminal --video-rotate=270 --fs --panscan=1.0 http://127.0.0.1:18000/stream/stream.m3u8
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

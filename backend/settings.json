@@ -1,54 +1,93 @@
 {
-  "duration": 5,
+  "duration": 3,
   "duration_variation": 0,
-  "keywords": "Naruto",
+  "keywords": "octopus,fish, aquarium",
   "playlist_url": null,
   "local_file": null,
   "active_effects": [
+    "glitch",
+    "color_adjust",
+    "visual_reverb",
+    "motion_amplification",
+    "colorise",
+    "recompress",
     "playback_jitter",
-    "datamosh",
-    "bloom",
-    "tracking"
+    "visual_reverb",
+    "color_adjust"
   ],
   "effect_options": {},
   "effect_chain": [
     {
+      "name": "glitch",
+      "options": {
+        "probability": 0.65,
+        "intensity": 53,
+        "scanline_jitter": true
+      }
+    },
+    {
+      "name": "color_adjust",
+      "options": {
+        "hue_shift": 0,
+        "saturation_scale": 0,
+        "luminosity_scale": 1.01,
+        "contrast": 1.65,
+        "brightness": 0
+      }
+    },
+    {
+      "name": "visual_reverb",
+      "options": {
+        "decay": 0.52
+      }
+    },
+    {
+      "name": "motion_amplification",
+      "options": {
+        "factor": 10
+      }
+    },
+    {
+      "name": "colorise",
+      "options": {
+        "colormap": "RAINBOW"
+      }
+    },
+    {
+      "name": "recompress",
+      "options": {
+        "bitrate": "100k",
+        "gop_size": 5000
+      }
+    },
+    {
       "name": "playback_jitter",
       "options": {
-        "speed": 1,
-        "jitter_probability": 0.3,
-        "jitter_intensity": 30
+        "speed": 0.4,
+        "jitter_probability": 1,
+        "jitter_intensity": 3
       }
     },
     {
-      "name": "datamosh",
+      "name": "visual_reverb",
       "options": {
-        "gop_size": 819,
-        "qscale": 3
+        "decay": 0.55
       }
     },
     {
-      "name": "bloom",
+      "name": "color_adjust",
       "options": {
-        "threshold": 48,
-        "blur_amount": 91,
-        "intensity": 1.26
-      }
-    },
-    {
-      "name": "tracking",
-      "options": {
-        "draw_tesselation": false,
-        "line_thickness": 5,
-        "line_color": "#2efa4f",
-        "overlay_image_path": "",
-        "overlay_size": 55
+        "hue_shift": 103,
+        "saturation_scale": 1,
+        "luminosity_scale": 1,
+        "contrast": 2.02,
+        "brightness": 0
       }
     }
   ],
   "randomize_effects": false,
   "random_preset_mode": false,
-  "freestyle_mode": true,
+  "freestyle_mode": false,
   "min_replays_before_next": 10,
   "playback_speed": 1.0,
   "video_quality": "480p",
