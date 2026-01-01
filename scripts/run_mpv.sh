@@ -6,4 +6,4 @@
 set -euo pipefail
 
 sudo chvt 1
-sudo mpv --video-rotate=270 --fs --panscan=1.0 "http://yomope:18000/stream/stream.m3u8"
+sudo mpv --video-rotate=270 --fs --panscan=1.0 --loop-playlist=inf "http://yomope:18000/stream/stream.m3u8"

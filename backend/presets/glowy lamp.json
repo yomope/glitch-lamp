@@ -1,0 +1,141 @@
+[
+  {
+    "id": "node_1767025593120_1",
+    "name": "noise",
+    "options": {
+      "duration": 7,
+      "width": 160,
+      "height": 160,
+      "fps": 10,
+      "noise_type": "white",
+      "seed": 0
+    },
+    "inputs": [],
+    "position": {
+      "x": 1194.901939761165,
+      "y": 792.9395418416708
+    }
+  },
+  {
+    "id": "node_1767085442063_1",
+    "name": "slowmo",
+    "options": {
+      "factor": 8
+    },
+    "inputs": [
+      "node_1767025593120_1"
+    ],
+    "position": {
+      "x": 1660.4380790242483,
+      "y": 815.5902889327741
+    }
+  },
+  {
+    "id": "node_1767087566861_2",
+    "name": "transfer-motion",
+    "options": {
+      "strength": 2
+    },
+    "inputs": [
+      "node_1767191125682_1",
+      "node_1767085442063_1"
+    ],
+    "position": {
+      "x": 2456.3040913445134,
+      "y": 498.70483960807974
+    }
+  },
+  {
+    "id": "node_1767191125682_1",
+    "name": "source",
+    "options": {
+      "keywords": "octopus,sea,snorkeling",
+      "playlist_url": "",
+      "video_quality": "1080p",
+      "include_reels": true,
+      "duration": 15,
+      "duration_variation": 0,
+      "playback_speed": 1
+    },
+    "inputs": [],
+    "position": {
+      "x": 1117.0136684611552,
+      "y": 121.83327064993233
+    }
+  },
+  {
+    "id": "node_1767212389348_2",
+    "name": "datamosh",
+    "options": {
+      "gop_size": 1000,
+      "qscale": 31
+    },
+    "inputs": [
+      "node_1767087566861_2"
+    ],
+    "position": {
+      "x": 3054.654895913622,
+      "y": 562.0306921359913
+    }
+  },
+  {
+    "id": "node_1767212410277_3",
+    "name": "slowmo",
+    "options": {
+      "factor": 6.3
+    },
+    "inputs": [
+      "node_1767260531524_3"
+    ],
+    "position": {
+      "x": 4593.367982890846,
+      "y": 561.1793133636534
+    }
+  },
+  {
+    "id": "node_1767259268305_1",
+    "name": "posterize",
+    "options": {
+      "levels": 5
+    },
+    "inputs": [
+      "node_1767212389348_2"
+    ],
+    "position": {
+      "x": 3433.057322840725,
+      "y": 558.1128691575325
+    }
+  },
+  {
+    "id": "node_1767260501102_2",
+    "name": "color_adjust",
+    "options": {
+      "hue_shift": 0,
+      "saturation_scale": 3,
+      "luminosity_scale": 0.85,
+      "contrast": 1.68,
+      "brightness": 0
+    },
+    "inputs": [
+      "node_1767259268305_1"
+    ],
+    "position": {
+      "x": 3825.4872801627916,
+      "y": 559.8513444364492
+    }
+  },
+  {
+    "id": "node_1767260531524_3",
+    "name": "blur",
+    "options": {
+      "kernel_size": 28
+    },
+    "inputs": [
+      "node_1767260501102_2"
+    ],
+    "position": {
+      "x": 4197.663128185038,
+      "y": 559.8512850952766
+    }
+  }
+]

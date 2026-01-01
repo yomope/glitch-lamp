@@ -122,12 +122,14 @@ class EffectManager:
 
             if effect.type == "file":
                 print(f"Applying file effect: {effect.name}")
+                if not os.path.exists(current_path):
+                    raise Exception(f"Input file does not exist for effect {effect.name}: {current_path}")
                 temp_out = current_path.replace(".mp4", f"_{effect.name}_{idx}.mp4")
                 processed_path = effect.apply_file(current_path, temp_out)
                 if processed_path and os.path.exists(processed_path):
                     current_path = processed_path
                 else:
-                    print(f"Effect {effect.name} failed or returned None")
+                    raise Exception(f"Effect {effect.name} failed: output file does not exist: {processed_path}")
             else:
                 # Frame effects are queued and applied in listed order later
                 instantiated_frame_effects.append(effect)
@@ -135,7 +137,11 @@ class EffectManager:
         # If no frame effects, finalize copy
         if not instantiated_frame_effects:
             if current_path != output_path:
+                if not os.path.exists(current_path):
+                    raise Exception(f"Input file does not exist: {current_path}")
                 shutil.copy(current_path, output_path)
+            if not os.path.exists(output_path):
+                raise Exception(f"Output file was not created: {output_path}")
             return output_path
 
         print(f"Applying frame effects: {[e.name for e in instantiated_frame_effects]}")

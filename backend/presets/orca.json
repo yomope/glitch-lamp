@@ -1,0 +1,89 @@
+[
+  {
+    "id": "node_1767011850336_30",
+    "name": "source",
+    "options": {
+      "keywords": "orca 4k",
+      "playlist_url": "",
+      "video_quality": "480p",
+      "include_reels": false,
+      "duration": 5,
+      "duration_variation": 0,
+      "playback_speed": 1
+    },
+    "inputs": [],
+    "position": {
+      "x": 120,
+      "y": 120
+    }
+  },
+  {
+    "id": "node_1767011850336_31",
+    "name": "timeslit",
+    "options": {
+      "buffer_size": 64,
+      "fixed_bars": true
+    },
+    "inputs": [
+      "node_1767011850336_30"
+    ],
+    "position": {
+      "x": 480,
+      "y": 120
+    }
+  },
+  {
+    "id": "node_1767011863513_33",
+    "name": "chopper",
+    "options": {
+      "num_cuts": 6,
+      "final_duration": 8,
+      "equal_segments": true,
+      "min_seg": 0.4,
+      "max_seg": 2.5
+    },
+    "inputs": [
+      "node_1767011850336_30",
+      "node_1767011889841_34",
+      "node_1767011850336_31",
+      null
+    ],
+    "position": {
+      "x": 1158.1680373880668,
+      "y": 88.09368033698006
+    }
+  },
+  {
+    "id": "node_1767011889841_34",
+    "name": "color_adjust",
+    "options": {
+      "hue_shift": 178,
+      "saturation_scale": 1,
+      "luminosity_scale": 1,
+      "contrast": 1,
+      "brightness": 0
+    },
+    "inputs": [
+      "node_1767011850336_30"
+    ],
+    "position": {
+      "x": 706.8186083585971,
+      "y": 661.9331737545608
+    }
+  },
+  {
+    "id": "node_1767011903251_35",
+    "name": "datamosh",
+    "options": {
+      "gop_size": 1000,
+      "qscale": 31
+    },
+    "inputs": [
+      "node_1767011863513_33"
+    ],
+    "position": {
+      "x": 1718.6933889556858,
+      "y": 149.33871253103564
+    }
+  }
+]

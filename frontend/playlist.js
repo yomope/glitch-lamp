@@ -1,3 +1,36 @@
+function confirmDialog(message) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.background = 'rgba(0,0,0,0.5)';
+    overlay.style.backdropFilter = 'blur(2px)';
+    overlay.style.display = 'grid';
+    overlay.style.placeItems = 'center';
+    overlay.style.zIndex = '4000';
+
+    const box = document.createElement('div');
+    box.style.background = '#0d1320';
+    box.style.border = '1px solid #1d2738';
+    box.style.borderRadius = '12px';
+    box.style.padding = '16px';
+    box.style.minWidth = '260px';
+    box.style.maxWidth = '90vw';
+    box.style.boxShadow = '0 20px 50px rgba(0,0,0,0.35)';
+    box.innerHTML = `
+      <div style="color:#e9f1fb; margin-bottom:12px; font-weight:600;">${message}</div>
+      <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+        <button class="btn secondary" id="c-cancel">Annuler</button>
+        <button class="btn" id="c-ok">OK</button>
+      </div>
+    `;
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    const done = (res) => { overlay.remove(); resolve(res); };
+    box.querySelector('#c-cancel').onclick = () => done(false);
+    box.querySelector('#c-ok').onclick = () => done(true);
+  });
+}
 const listEl = document.getElementById('playlist-list');
 const urlInput = document.getElementById('playlist-url');
 const fileSelect = document.getElementById('playlist-local-file');
@@ -102,7 +135,8 @@ addBtn.addEventListener('click', async () => {
 });
 
 clearBtn.addEventListener('click', async () => {
-  if (!confirm('Vider la playlist ?')) return;
+  const ok = await confirmDialog('Vider la playlist ?');
+  if (!ok) return;
   try {
     await fetch('/playlist/clear', { method: 'POST' });
     showToast('Playlist vidée');

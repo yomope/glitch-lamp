@@ -1,0 +1,116 @@
+[
+  {
+    "id": "node_1766925886145_4",
+    "name": "source",
+    "options": {
+      "keywords": "4k animal,4k natures",
+      "playlist_url": "",
+      "video_quality": "480p",
+      "include_reels": false,
+      "duration": 25,
+      "duration_variation": 0,
+      "playback_speed": 1
+    },
+    "inputs": [],
+    "position": {
+      "x": -352.39936752670894,
+      "y": -194.3359097421947
+    }
+  },
+  {
+    "id": "node_1766926148409_7",
+    "name": "transfer-motion",
+    "options": {
+      "strength": 1
+    },
+    "inputs": [
+      "node_1766925886145_4",
+      "node_1766943977540_1"
+    ],
+    "position": {
+      "x": 459.6365227981761,
+      "y": -402.4410430958637
+    }
+  },
+  {
+    "id": "node_1766932349231_2",
+    "name": "mix",
+    "options": {
+      "mode": "darken",
+      "opacity": 0.7
+    },
+    "inputs": [
+      "node_1766926148409_7",
+      "node_1766942775434_2"
+    ],
+    "position": {
+      "x": 1288.2565370340217,
+      "y": -219.44941126421062
+    }
+  },
+  {
+    "id": "node_1766942775434_2",
+    "name": "datamosh",
+    "options": {
+      "gop_size": 1000,
+      "qscale": 31
+    },
+    "inputs": [
+      "node_1766925886145_4"
+    ],
+    "position": {
+      "x": 403.40703086851386,
+      "y": 44.86157841135991
+    }
+  },
+  {
+    "id": "node_1766943977540_1",
+    "name": "source",
+    "options": {
+      "keywords": "4k animal,4k natures",
+      "playlist_url": "",
+      "video_quality": "480p",
+      "include_reels": false,
+      "duration": 5,
+      "duration_variation": 0,
+      "playback_speed": 2
+    },
+    "inputs": [],
+    "position": {
+      "x": -345.51870800461506,
+      "y": -946.4920263975258
+    }
+  },
+  {
+    "id": "node_1766944920090_2",
+    "name": "bloom",
+    "options": {
+      "threshold": 200,
+      "blur_amount": 63,
+      "intensity": 3.13
+    },
+    "inputs": [
+      "node_1766943977540_1"
+    ],
+    "position": {
+      "x": 790.0274251700145,
+      "y": -807.1630733897856
+    }
+  },
+  {
+    "id": "node_1766944936524_3",
+    "name": "mix",
+    "options": {
+      "mode": "screen",
+      "opacity": 0.9
+    },
+    "inputs": [
+      "node_1766944920090_2",
+      "node_1766932349231_2"
+    ],
+    "position": {
+      "x": 1929.059282159641,
+      "y": -439.28704721792184
+    }
+  }
+]

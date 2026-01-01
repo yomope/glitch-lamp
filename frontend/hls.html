@@ -7,11 +7,11 @@
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    body { background: #06080e; color: #e9f1fb; font-family: 'Space Grotesk', 'Segoe UI', sans-serif; }
-    .wrapper { max-width: 1080px; margin: 20px auto; padding: 20px; background: rgba(14,19,28,0.92); border:1px solid #1d2738; border-radius:14px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+    body { background: #06080e; color: #e9f1fb; font-family: 'Space Grotesk', 'Segoe UI', sans-serif; margin:0; padding:0; overflow-x:hidden; overflow-y:auto; }
+    .wrapper { max-width: min(1100px, 96vw); margin: 16px auto 28px auto; padding: 18px; background: rgba(14,19,28,0.92); border:1px solid #1d2738; border-radius:14px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
     h1 { margin: 0 0 16px 0; font-size: 22px; letter-spacing: 0.01em; }
     .card { background:#0d1320; border:1px solid #1d2738; border-radius:12px; padding:16px; margin-bottom:16px; }
-    .btn { border:1px solid transparent; background:#19e1a3; color:#04120b; padding:10px 14px; border-radius:10px; font-weight:700; letter-spacing:0.02em; cursor:pointer; transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease; }
+    .btn { border:1px solid transparent; background:#19e1a3; color:#04120b; padding:9px 12px; border-radius:10px; font-weight:700; letter-spacing:0.01em; cursor:pointer; transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease; font-size:14px; }
     .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(25,225,163,0.25); }
     .btn:active { transform: translateY(0); }
     .btn.secondary { background: transparent; border-color: #1d2738; color: #e9f1fb; }
@@ -21,10 +21,27 @@
     ul::-webkit-scrollbar-thumb { background: #233047; border-radius: 8px; }
     li { border:1px solid #1d2738; border-radius:10px; padding:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; background:#0f1726; position: relative; }
     .small { color:#8da0b3; font-size:13px; }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .list-box { max-height: 280px; overflow-y: auto; border:1px solid #1d2738; border-radius:10px; padding:10px; background:#0f1726; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .stat-card { padding:10px; border:1px solid #1d2738; border-radius:10px; background:#0b111d; display:flex; flex-direction:column; gap:4px; }
+    .controls-row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .progress { flex:1; min-width:200px; height:8px; background:rgba(255,255,255,0.12); border-radius:4px; position:relative; cursor:pointer; }
+    .progress .fill { position:absolute; inset:0; width:0%; background:#19e1a3; border-radius:4px; transition:width 0.1s; }
+    video { width:100%; max-height:320px; background:#000; border-radius:12px; border:1px solid #1d2738; }
+    .player-box { position: relative; overflow: hidden; }
     #toast { position:fixed; top:16px; right:16px; padding:10px 14px; background:#0d1320; border:1px solid #1d2738; border-radius:10px; color:#e9f1fb; opacity:0; transition:opacity 0.2s ease; }
     #toast.show { opacity:1; }
-    .preview-card { position: fixed; pointer-events: none; background:#0d1320; border:1px solid #1d2738; border-radius:10px; padding:6px; box-shadow: 0 12px 30px rgba(0,0,0,0.45); z-index: 9999; }
-    .preview-card video { display:block; width:220px; height:124px; border-radius:8px; background:#000; }
+    .preview-card { position: fixed; pointer-events: none; background:#0d1320; border:1px solid #1d2738; border-radius:10px; padding:6px; box-shadow: 0 12px 30px rgba(0,0,0,0.45); z-index: 30; right: 12px; bottom: 12px; width: 210px; }
+    .preview-card video { display:block; width:100%; height:118px; border-radius:8px; background:#000; }
+
+    @media (max-width: 720px) {
+      .wrapper { padding: 14px; }
+      .controls-row { gap: 8px; }
+      .grid { grid-template-columns: 1fr; }
+      ul { max-height: 300px; }
+      video { max-height: 240px; }
+    }
   </style>
 </head>
 <body>
@@ -37,15 +54,72 @@
       <button class="btn" id="refresh">Rafraîchir</button>
       <button class="btn secondary" id="reset">Reset HLS</button>
       <span id="status" class="small"></span>
+      <span id="batch-timer" class="small" style="color:#19e1a3; margin-left: auto; font-weight: bold;"></span>
     </div>
 
     <div class="card">
-      <h3 style="margin-top:0;">Segments en rotation</h3>
+      <h3 style="margin-top:0;">Vidéos en rotation</h3>
       <ul id="segments"></ul>
+    </div>
+
+    <div class="card player-box">
+      <h3 style="margin-top:0;">Lecture playlist</h3>
+      <video id="playlist-player" playsinline style="position:relative; z-index:1;"></video>
+      <div class="controls-row" style="margin-top:10px;">
+        <button class="btn" id="play-pause">▶ Play</button>
+        <div class="progress" id="progress-bar">
+          <div class="fill" id="progress-fill"></div>
+        </div>
+        <span id="time-display" class="small">0:00 / 0:00</span>
+        <button class="btn secondary" id="mute-btn">🔊</button>
+        <input type="range" id="volume-slider" min="0" max="100" value="100" style="width:120px; accent-color:#19e1a3;">
+        <button class="btn secondary" id="fullscreen-btn">⛶</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Historique & Exports</h3>
+      <div class="grid">
+        <div>
+          <div class="small" style="margin-bottom:6px;">Historique des clips</div>
+          <div class="list-box" id="history-list">
+            <div class="small" style="text-align:center;">Chargement...</div>
+          </div>
+        </div>
+        <div>
+          <div class="small" style="margin-bottom:6px;">Exports</div>
+          <div class="list-box" id="exports-list">
+            <div class="small" style="text-align:center;">Chargement...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Statistiques</h3>
+      <div class="stat-grid" id="stats-grid">
+        <div class="stat-card">
+          <span class="small">Clips joués</span>
+          <span id="stat-clips" style="color:#19e1a3; font-weight:bold;">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="small">Temps total</span>
+          <span id="stat-time" style="color:#19e1a3; font-weight:bold;">0s</span>
+        </div>
+        <div class="stat-card">
+          <span class="small">Aujourd'hui</span>
+          <span id="stat-today" style="color:#19e1a3; font-weight:bold;">0 clips</span>
+        </div>
+        <div class="stat-card">
+          <span class="small">Session</span>
+          <span id="stat-session" style="color:#19e1a3; font-weight:bold;">0s</span>
+        </div>
+      </div>
+      <button class="btn secondary" id="reset-stats" style="margin-top:10px; border-color:#d04545; color:#f38b8b;">Réinitialiser</button>
     </div>
   </div>
 
   <div id="toast"></div>
-  <script src="/static/hls.js?v=5"></script>
+  <script src="/static/hls.js?v=8"></script>
 </body>
 </html>

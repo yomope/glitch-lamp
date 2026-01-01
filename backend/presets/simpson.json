@@ -1,0 +1,81 @@
+[
+  {
+    "id": "node_1767011786633_14",
+    "name": "source",
+    "options": {
+      "keywords": "simpson",
+      "playlist_url": "",
+      "video_quality": "best",
+      "include_reels": true,
+      "duration": 5,
+      "duration_variation": 0,
+      "playback_speed": 1
+    },
+    "inputs": [],
+    "position": {
+      "x": 120,
+      "y": 120
+    }
+  },
+  {
+    "id": "node_1767011786633_16",
+    "name": "tracking",
+    "options": {
+      "draw_tesselation": true,
+      "line_thickness": 8,
+      "line_color": "#0b4a94",
+      "overlay_image_path": "",
+      "overlay_size": 30
+    },
+    "inputs": [
+      "node_1767011786633_18"
+    ],
+    "position": {
+      "x": 1219.4530427239083,
+      "y": 141.3026066441705
+    }
+  },
+  {
+    "id": "node_1767011786633_17",
+    "name": "time-shift",
+    "options": {
+      "shift_seconds": 8.4
+    },
+    "inputs": [
+      "node_1767011786633_16"
+    ],
+    "position": {
+      "x": 1532.8535462490422,
+      "y": 126.65707092498084
+    }
+  },
+  {
+    "id": "node_1767011786633_18",
+    "name": "double_exposure",
+    "options": {
+      "delay_frames": 6,
+      "opacity": 0.35
+    },
+    "inputs": [
+      "node_1767011786633_14"
+    ],
+    "position": {
+      "x": 518.0928616296229,
+      "y": 60.316659475632065
+    }
+  },
+  {
+    "id": "node_1767011828119_19",
+    "name": "colorise",
+    "options": {
+      "colormap": "CIVIDIS"
+    },
+    "inputs": [
+      "node_1767011786633_17"
+    ],
+    "position": {
+      "x": 2095.150770079121,
+      "y": -65.35182479959666
+    }
+  }
+]

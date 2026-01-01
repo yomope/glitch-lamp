@@ -20,8 +20,7 @@ class StreamingService:
         self.lock = asyncio.Lock()
         self.next_video_url: Optional[str] = None
         self.video_duration: float = 0.0
-        self.repeat_count: int = 0
-        self.repeats_target: int = 0
+        self.repeat_count: int = 0  # Utilisé uniquement pour les stats
         
     async def add_client(self, websocket):
         """Ajoute un client connecté."""
@@ -66,8 +65,7 @@ class StreamingService:
         self.video_duration = duration
         self.video_start_timestamp = time.time()
         self.current_video_start_time = 0.0
-        self.repeats_target = max(0, repeats_target)
-        self.repeat_count = 0
+        self.repeat_count = 0  # Réinitialiser le compteur pour les stats
         logger.info(f"Nouvelle vidéo diffusée: {url} (durée: {duration}s)")
     
     def set_next_video(self, url: str):
@@ -164,16 +162,12 @@ class StreamingService:
         logger.info(f"Changement de vidéo: {url}")
     
     def note_repeat(self):
-        """Enregistre une répétition serveur-side (HLS alimenté ailleurs)."""
+        """Enregistre une répétition serveur-side (HLS alimenté ailleurs). Utilisé pour les stats."""
         self.repeat_count += 1
         self.current_video_start_time = 0.0
         self.video_start_timestamp = time.time()
         self.is_playing = True
-        logger.info(f"Répétition {self.repeat_count}/{self.repeats_target} pour {self.current_video_url}")
-
-    def should_repeat(self) -> bool:
-        """Indique si la vidéo actuelle doit encore être répétée."""
-        return self.repeat_count < self.repeats_target
+        logger.info(f"Répétition {self.repeat_count} pour {self.current_video_url}")
 
     def get_state(self) -> Dict:
         """Retourne l'état actuel du streaming."""
@@ -185,8 +179,7 @@ class StreamingService:
             "playback_speed": self.playback_speed,
             "next_video": self.next_video_url,
             "timestamp": time.time(),
-            "repeat_count": self.repeat_count,
-            "repeats_target": self.repeats_target
+            "repeat_count": self.repeat_count
         }
 
 # Instance globale du service de streaming

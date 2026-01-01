@@ -17,6 +17,12 @@ let stallRestarting = false;
 // Statistiques - enregistrement seulement (pas d'affichage)
 let currentClipDuration = 0;
 
+// Logs temps réel
+let logPanel = null;
+let logContent = null;
+let logStatus = null;
+let logVisible = false;
+
 function resetVideoLayout() {
     mainPlayer.style.width = '100%';
     mainPlayer.style.height = '100%';
@@ -104,6 +110,16 @@ function startHlsStream() {
         });
         hls.on(Hls.Events.ERROR, (event, data) => {
             console.warn('HLS error', data);
+            // Si un segment attendu a disparu, on se recale sur le live
+            const reason = typeof data.reason === 'string' ? data.reason : '';
+            if (!data.fatal && (data.details === Hls.ErrorDetails.FRAG_PARSING_ERROR || reason.includes('Found no media'))) {
+                const edge = liveEdgePosition();
+                if (edge !== null) {
+                    try { mainPlayer.currentTime = Math.max(0, edge - 0.5); } catch (_) {}
+                }
+                restartHls(150);
+                return;
+            }
             // Tentatives de récupération non fatales (buffer stall, petites erreurs réseau)
             if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
                 const now = Date.now();
@@ -188,6 +204,21 @@ setInterval(loadPlayerSettings, 2000);
 
 // ===== WEBSOCKET STREAMING =====
 
+function appendLog(line) {
+    if (!logContent) return;
+    const now = new Date();
+    const stamp = now.toISOString().split('T')[1].slice(0, 12);
+    logContent.textContent += `[${stamp}] ${line}\n`;
+    logContent.scrollTop = logContent.scrollHeight;
+}
+
+function toggleLogPanel(force) {
+    if (!logPanel) return;
+    logVisible = force !== undefined ? force : !logVisible;
+    logPanel.style.display = logVisible ? 'block' : 'none';
+    if (logStatus) logStatus.textContent = logVisible ? 'ON' : 'OFF';
+}
+
 function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -196,6 +227,7 @@ function connectWebSocket() {
     
     ws.onopen = () => {
         console.log('WebSocket connecté');
+        appendLog('[ws] connected');
         isConnected = true;
         // Demander l'état actuel
         ws.send(JSON.stringify({ type: "get_state" }));
@@ -212,10 +244,12 @@ function connectWebSocket() {
     
     ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        appendLog(`[ws] error ${error && error.message ? error.message : ''}`);
     };
     
     ws.onclose = () => {
         console.log('WebSocket déconnecté, reconnexion...');
+        appendLog('[ws] closed - retry');
         isConnected = false;
         // Reconnexion après 3 secondes
         setTimeout(connectWebSocket, 3000);
@@ -237,10 +271,12 @@ function handleStreamingMessage(message) {
                     mainPlayer.currentTime = message.position;
                 }
             }
+            appendLog(`[state] speed=${playbackSpeed}`);
             break;
             
         case 'video_change':
             // La diffusion HLS est continue : ignorer les changements directs de fichier
+            appendLog(`[video_change] ${message.url || ''}`);
             break;
             
         case 'play':
@@ -249,6 +285,7 @@ function handleStreamingMessage(message) {
             }
             syncPosition = message.position || mainPlayer.currentTime;
             lastSyncTime = message.timestamp || Date.now() / 1000;
+            appendLog('[play]');
             break;
             
         case 'pause':
@@ -257,17 +294,20 @@ function handleStreamingMessage(message) {
             }
             syncPosition = message.position || mainPlayer.currentTime;
             lastSyncTime = message.timestamp || Date.now() / 1000;
+            appendLog('[pause]');
             break;
             
         case 'seek':
             syncPosition = message.position || 0;
             mainPlayer.currentTime = syncPosition;
             lastSyncTime = message.timestamp || Date.now() / 1000;
+            appendLog(`[seek] ${syncPosition.toFixed(2)}`);
             break;
             
         case 'speed':
             playbackSpeed = message.speed || 1.0;
             mainPlayer.playbackRate = playbackSpeed;
+            appendLog(`[speed] ${playbackSpeed}`);
             break;
     }
 }
@@ -320,16 +360,19 @@ mainPlayer.addEventListener('play', () => {
     if (isConnected && ws) {
         ws.send(JSON.stringify({ type: "play" }));
     }
+    appendLog('[player] play');
 });
 
 mainPlayer.addEventListener('pause', () => {
     if (isConnected && ws) {
         ws.send(JSON.stringify({ type: "pause" }));
     }
+    appendLog('[player] pause');
 });
 
 mainPlayer.addEventListener('seeked', () => {
     // Ne pas renvoyer au serveur pour éviter des boucles de seek
+    appendLog(`[player] seeked ${mainPlayer.currentTime.toFixed(2)}`);
 });
 
 mainPlayer.addEventListener('error', () => {
@@ -353,3 +396,19 @@ async function initialLoad() {
 }
 
 initialLoad();
+
+document.addEventListener('DOMContentLoaded', () => {
+    logPanel = document.getElementById('log-panel');
+    logContent = document.getElementById('log-content');
+    logStatus = document.getElementById('log-status');
+    const toggleBtn = document.getElementById('toggle-log-btn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => toggleLogPanel());
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'l' || e.key === 'L') {
+        toggleLogPanel();
+    }
+});

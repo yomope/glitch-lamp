@@ -4,6 +4,7 @@ import random
 import os
 import subprocess
 from backend.plugins.base import VideoEffect
+from backend.utils.logger import logger
 
 class PlaybackJitterEffect(VideoEffect):
     def __init__(self):
@@ -39,7 +40,9 @@ class PlaybackJitterEffect(VideoEffect):
     def apply_file(self, input_path: str, output_path: str, **kwargs) -> str:
         cap = cv2.VideoCapture(input_path)
         if not cap.isOpened():
-            return input_path
+            error_msg = f"Failed to open video file: {input_path}"
+            logger.error(f"PlaybackJitter: {error_msg}")
+            raise Exception(error_msg)
 
         # Get video properties
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -55,10 +58,17 @@ class PlaybackJitterEffect(VideoEffect):
         temp_output = output_path.replace(".mp4", "_jitter_temp.mp4")
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
+        
+        if not out.isOpened():
+            cap.release()
+            error_msg = f"Failed to open VideoWriter for {temp_output}"
+            logger.error(f"PlaybackJitter: {error_msg}")
+            raise Exception(error_msg)
 
         current_pos = 0.0
         last_read_frame_idx = -1
         last_frame = None
+        frames_written = 0
 
         # We will generate roughly the same duration of video as the input * (1/speed)
         
@@ -97,13 +107,32 @@ class PlaybackJitterEffect(VideoEffect):
                 frame = last_frame
 
             if frame is not None:
-                out.write(frame)
+                if out.write(frame):
+                    frames_written += 1
 
             # Advance virtual head
             current_pos += self.speed
 
         cap.release()
         out.release()
+        
+        # Verify temp file was created and frames were written
+        if frames_written == 0:
+            error_msg = f"No frames were written to temp file: {temp_output}"
+            logger.error(f"PlaybackJitter: {error_msg}")
+            raise Exception(error_msg)
+        
+        if not os.path.exists(temp_output):
+            error_msg = f"Temp file {temp_output} was not created after VideoWriter release"
+            logger.error(f"PlaybackJitter: {error_msg}")
+            raise Exception(error_msg)
+        
+        # Vérifier que le fichier n'est pas vide
+        file_size = os.path.getsize(temp_output)
+        if file_size == 0:
+            error_msg = f"Temp file {temp_output} is empty after writing {frames_written} frames"
+            logger.error(f"PlaybackJitter: {error_msg}")
+            raise Exception(error_msg)
         
         # Re-encode to H.264 using FFmpeg
         # This ensures the output is playable in browser if this is the last effect
@@ -142,24 +171,53 @@ class PlaybackJitterEffect(VideoEffect):
                     ffmpeg_exe = "ffmpeg"  # Final fallback: hope it's in PATH
             
             if not ffmpeg_exe:
-                raise Exception("FFmpeg not found")
+                error_msg = "FFmpeg not found"
+                logger.error(f"PlaybackJitter: {error_msg}")
+                raise Exception(error_msg)
             
-            subprocess.run([
+            # Check if temp file exists and is valid
+            if not os.path.exists(temp_output):
+                error_msg = f"Temp file {temp_output} does not exist"
+                logger.error(f"PlaybackJitter: {error_msg}")
+                raise Exception(error_msg)
+            
+            # Get file size to verify it's not empty
+            file_size = os.path.getsize(temp_output)
+            if file_size == 0:
+                error_msg = f"Temp file {temp_output} is empty"
+                logger.error(f"PlaybackJitter: {error_msg}")
+                raise Exception(error_msg)
+            
+            result = subprocess.run([
                 ffmpeg_exe, '-y', '-i', temp_output,
                 '-c:v', 'libx264', '-preset', 'medium', '-crf', '28',
                 '-c:a', 'aac', '-b:a', '96k',
                 '-pix_fmt', 'yuv420p',
                 '-movflags', '+faststart',
                 output_path
-            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120)
+            ], check=True, capture_output=True, text=True, timeout=120)
             
             if os.path.exists(temp_output):
                 os.remove(temp_output)
                 
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr if hasattr(e, 'stderr') and e.stderr else str(e)
+            logger.error(f"PlaybackJitter: FFmpeg re-encoding failed for {temp_output}: {error_msg}")
+            # Nettoyer le fichier temporaire s'il existe
+            if os.path.exists(temp_output):
+                try:
+                    os.remove(temp_output)
+                except Exception as cleanup_error:
+                    logger.warning(f"PlaybackJitter: Failed to cleanup temp file {temp_output}: {cleanup_error}")
+            raise Exception(f"FFmpeg re-encoding failed: {error_msg}")
         except Exception as e:
-            print(f"Jitter re-encoding failed: {e}")
-            # Fallback: just rename the temp file to output
-            if os.path.exists(output_path): os.remove(output_path)
-            os.rename(temp_output, output_path)
+            logger.error(f"PlaybackJitter: Re-encoding failed for {temp_output}: {e}")
+            # Nettoyer le fichier temporaire s'il existe
+            if os.path.exists(temp_output):
+                try:
+                    os.remove(temp_output)
+                except Exception as cleanup_error:
+                    logger.warning(f"PlaybackJitter: Failed to cleanup temp file {temp_output}: {cleanup_error}")
+            raise
         
         return output_path

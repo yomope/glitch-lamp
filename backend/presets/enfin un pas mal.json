@@ -1,0 +1,150 @@
+[
+  {
+    "id": "node_1767011850336_30",
+    "name": "source",
+    "options": {
+      "keywords": "wild orca 4k",
+      "playlist_url": "",
+      "video_quality": "480p",
+      "include_reels": false,
+      "duration": 20,
+      "duration_variation": 0,
+      "playback_speed": 1
+    },
+    "inputs": [],
+    "position": {
+      "x": -32.33571910711319,
+      "y": 62.11238025012489
+    }
+  },
+  {
+    "id": "node_1767011903251_35",
+    "name": "datamosh",
+    "options": {
+      "gop_size": 1000,
+      "qscale": 31
+    },
+    "inputs": [
+      "node_1767016651818_3"
+    ],
+    "position": {
+      "x": 1544.474761806062,
+      "y": 62.28695761346086
+    }
+  },
+  {
+    "id": "node_1767016651818_3",
+    "name": "transfer-motion",
+    "options": {
+      "strength": 2
+    },
+    "inputs": [
+      "node_1767016669902_5",
+      "node_1767011850336_30"
+    ],
+    "position": {
+      "x": 1158.126340588196,
+      "y": 140.58187929788528
+    }
+  },
+  {
+    "id": "node_1767016669902_5",
+    "name": "chopper",
+    "options": {
+      "num_cuts": 5,
+      "final_duration": 20,
+      "equal_segments": true,
+      "min_seg": 0.4,
+      "max_seg": 2.5
+    },
+    "inputs": [
+      "node_1767011850336_30",
+      null,
+      null,
+      null
+    ],
+    "position": {
+      "x": 628.0604690630367,
+      "y": -521.154035297639
+    }
+  },
+  {
+    "id": "node_1767016803119_6",
+    "name": "motion_amplification",
+    "options": {
+      "factor": 5.77
+    },
+    "inputs": [
+      "node_1767016651818_3"
+    ],
+    "position": {
+      "x": 1474.598602259493,
+      "y": 551.9082530760096
+    }
+  },
+  {
+    "id": "node_1767016818721_7",
+    "name": "slowmo",
+    "options": {
+      "factor": 5.7
+    },
+    "inputs": [
+      "node_1767016896613_9"
+    ],
+    "position": {
+      "x": 3008.248566813906,
+      "y": -26.53245494815701
+    }
+  },
+  {
+    "id": "node_1767016852090_8",
+    "name": "mix",
+    "options": {
+      "mode": "difference",
+      "opacity": 0.7
+    },
+    "inputs": [
+      "node_1767011903251_35",
+      "node_1767016803119_6"
+    ],
+    "position": {
+      "x": 1961.078186825451,
+      "y": 72.68116427682244
+    }
+  },
+  {
+    "id": "node_1767016896613_9",
+    "name": "chopper",
+    "options": {
+      "num_cuts": 6,
+      "final_duration": 20,
+      "equal_segments": true,
+      "min_seg": 0.4,
+      "max_seg": 2.5
+    },
+    "inputs": [
+      "node_1767016669902_5",
+      "node_1767016852090_8",
+      "node_1767016803119_6",
+      null
+    ],
+    "position": {
+      "x": 2681.281011991702,
+      "y": 48.61632613472415
+    }
+  },
+  {
+    "id": "node_1767016974312_10",
+    "name": "solarize",
+    "options": {
+      "threshold": 66
+    },
+    "inputs": [
+      "node_1767016818721_7"
+    ],
+    "position": {
+      "x": 3491.3246105936423,
+      "y": -32.78625097545273
+    }
+  }
+]

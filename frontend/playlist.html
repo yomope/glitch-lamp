@@ -25,40 +25,14 @@
   </style>
 </head>
 <body>
-  <div class="wrapper">
+  <div class="wrapper" style="text-align:center;">
     <h1>Gestion de la playlist</h1>
-
     <div class="card">
-      <div class="grid">
-        <div>
-          <label>URL (YouTube ou autre)</label>
-          <input type="text" id="playlist-url" placeholder="https://...">
-        </div>
-        <div>
-          <label>Fichier uploadé</label>
-          <select id="playlist-local-file">
-            <option value="">-- Aucun --</option>
-          </select>
-        </div>
-        <div>
-          <label>Titre (optionnel)</label>
-          <input type="text" id="playlist-title" placeholder="Titre pour repère">
-        </div>
-      </div>
-      <div style="margin-top:12px; display:flex; gap:10px;">
-        <button class="btn" id="add-playlist-item">Ajouter à la playlist</button>
-        <button class="btn secondary" id="clear-playlist">Vider la playlist</button>
-      </div>
-      <p id="add-status" class="small"></p>
-    </div>
-
-    <div class="card">
-      <h3 style="margin-top:0;">Playlist actuelle</h3>
-      <ul id="playlist-list"></ul>
+      <p class="small" style="margin:0;">
+        Cette page est désormais inutile : utilisez les presets et le chargement automatique dans
+        <a href="option.html" class="btn secondary" style="display:inline-block; margin-left:8px;">Options</a>.
+      </p>
     </div>
   </div>
-
-  <div id="toast"></div>
-  <script src="playlist.js?v=1"></script>
 </body>
 </html>

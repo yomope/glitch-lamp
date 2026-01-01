@@ -33,7 +33,7 @@ System Volume Information/
 
 # Fichiers de configuration locaux (optionnel - décommentez si vous ne voulez pas les commiter)
 # backend/settings.json
-# stats.json
+stats.json
 
 # Fichiers Windows
 *.exe
@@ -42,3 +42,20 @@ System Volume Information/
 # Fichiers de cache
 *.cache
 .cache/
+
+# Cookie et secrets
+cookies.txt
+*.key
+*.pem
+.env
+.env.local
+
+# Fichiers HLS générés (segments vidéo et playlists)
+**/hls/
+backend/hls/
+*.ts
+*.m3u8
+
+# Vidéos de prévisualisation générées
+preview_videos/
+

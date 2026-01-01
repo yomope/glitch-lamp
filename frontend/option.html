@@ -2,406 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Glitch Options">
     <title>Glitch Video Player - Options</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
-
-        :root {
-            --bg: #06080e;
-            --panel: rgba(14, 19, 28, 0.92);
-            --card: #0d1320;
-            --border: #1d2738;
-            --muted: #8da0b3;
-            --text: #e9f1fb;
-            --accent: #19e1a3;
-            --accent-strong: #0ecf92;
-            --shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
-            --radius: 14px;
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            background: radial-gradient(120% 140% at 20% 20%, rgba(25,225,163,0.08), transparent),
-                        radial-gradient(100% 120% at 80% 0%, rgba(0,188,255,0.10), transparent),
-                        var(--bg);
-            color: var(--text);
-            font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
-        }
-
-        a { text-decoration: none; }
-
-        #top-bar {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 22px;
-            background: var(--panel);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            box-shadow: var(--shadow);
-        }
-
-        #top-bar h2 {
-            margin: 0;
-            font-size: 20px;
-            letter-spacing: 0.02em;
-        }
-
-        .page {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #settings-panel {
-            flex: 1;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 18px 20px 32px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            box-sizing: border-box;
-            overflow: auto;
-        }
-
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 18px 20px;
-            box-shadow: var(--shadow);
-        }
-
-        .section-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 0 0 12px 0;
-            font-size: 15px;
-            letter-spacing: 0.01em;
-            color: var(--muted);
-        }
-
-        .main-settings {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            color: var(--muted);
-            font-size: 13px;
-            letter-spacing: 0.01em;
-        }
-
-        .form-group input[type="text"],
-        .form-group input[type="number"],
-        select {
-            width: 100%;
-            padding: 10px 12px;
-            background: #0b111d;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            color: var(--text);
-            outline: none;
-            transition: border 0.15s ease, box-shadow 0.15s ease;
-            font-size: 14px;
-        }
-
-        .form-group input:focus,
-        select:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(25,225,163,0.14);
-        }
-
-        .btn {
-            border: 1px solid transparent;
-            background: var(--accent);
-            color: #04120b;
-            padding: 10px 14px;
-            border-radius: 10px;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            cursor: pointer;
-            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease;
-        }
-
-        .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(25,225,163,0.25); }
-        .btn:active { transform: translateY(0); }
-
-        .btn.secondary {
-            background: transparent;
-            border-color: var(--border);
-            color: var(--text);
-        }
-
-        .btn.ghost {
-            background: rgba(255,255,255,0.04);
-            border-color: var(--border);
-            color: var(--muted);
-        }
-
-        .btn.danger {
-            background: transparent;
-            border-color: #d04545;
-            color: #f38b8b;
-        }
-
-        .btn.sm { padding: 8px 10px; font-size: 13px; }
-
-        #effect-chain {
-            display: flex;
-            gap: 18px;
-            align-items: flex-start;
-            flex-wrap: wrap;
-        }
-
-        .node-canvas {
-            width: 100%;
-            overflow: auto;
-            padding: 12px;
-            background-image:
-                linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-            background-size: 40px 40px;
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
-        }
-
-        .node-row {
-            display: flex;
-            align-items: stretch;
-            gap: 18px;
-            min-height: 190px;
-        }
-
-        .effect-item {
-            position: relative;
-            width: 320px;
-            min-width: 320px;
-            max-width: 320px;
-            min-height: 260px;
-            border: 1px solid var(--border);
-            background: linear-gradient(145deg, #0f1726 0%, #0b121f 100%);
-            border-radius: 12px;
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-
-        .effect-item.dragging {
-            opacity: 0.75;
-            transform: translateY(-2px);
-        }
-
-        .effect-item::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            right: -12px;
-            width: 24px;
-            height: 2px;
-            background: linear-gradient(90deg, rgba(25,225,163,0.0), rgba(25,225,163,0.8));
-            pointer-events: none;
-        }
-
-        .effect-item:last-child::after {
-            display: none;
-        }
-
-        .effect-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .effect-header select {
-            flex: 1;
-        }
-
-        .effect-title {
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            text-transform: uppercase;
-            color: var(--text);
-            font-size: 13px;
-            padding: 4px 8px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            min-width: 120px;
-            text-align: center;
-        }
-
-        .drag-handle {
-            width: 26px;
-            height: 26px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: rgba(255,255,255,0.04);
-            display: grid;
-            place-items: center;
-            color: var(--muted);
-            cursor: grab;
-            user-select: none;
-            font-size: 16px;
-        }
-
-        .effect-ports {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .port {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 1px solid var(--accent);
-            background: rgba(25,225,163,0.12);
-            box-shadow: 0 0 0 3px rgba(25,225,163,0.08);
-        }
-
-        .effect-controls {
-            display: flex;
-            gap: 6px;
-        }
-
-        .close-btn {
-            width: 26px;
-            height: 26px;
-            border-radius: 8px;
-            border: 1px solid #d04545;
-            background: rgba(208,69,69,0.12);
-            color: #f38b8b;
-            cursor: pointer;
-            font-weight: 700;
-            line-height: 1;
-        }
-
-        .effect-options {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-
-        .option-item label {
-            display: block;
-            margin-bottom: 4px;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .option-item input {
-            width: 100%;
-            padding: 9px 10px;
-            background: #0b111d;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            color: var(--text);
-        }
-
-        .slider-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .range-input {
-            flex: 1;
-            accent-color: var(--accent);
-        }
-
-        .value-chip {
-            min-width: 46px;
-            padding: 6px 8px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid var(--border);
-            color: var(--text);
-            text-align: center;
-            font-size: 12px;
-        }
-
-        .drop-target {
-            outline: 2px dashed rgba(25,225,163,0.5);
-            outline-offset: 4px;
-        }
-
-        .context-menu {
-            position: absolute;
-            background: #0b111d;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
-            min-width: 220px;
-            z-index: 2000;
-            padding: 6px;
-            display: none;
-        }
-
-        .context-menu.visible { display: block; }
-
-        .context-item {
-            padding: 10px 12px;
-            border-radius: 8px;
-            color: var(--text);
-            cursor: pointer;
-            transition: background 0.12s ease;
-        }
-
-        .context-item:hover {
-            background: rgba(25,225,163,0.08);
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 18px;
-            right: 18px;
-            background: rgba(10, 15, 25, 0.92);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 10px 14px;
-            border-radius: 10px;
-            box-shadow: var(--shadow);
-            opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.2s ease, transform 0.2s ease;
-            pointer-events: none;
-            z-index: 3000;
-            font-size: 13px;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .hint {
-            color: var(--muted);
-            font-size: 12px;
-            margin-left: 4px;
-        }
-
-        .top-actions { display: flex; gap: 10px; align-items: center; }
-        .pill { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.04); color: var(--muted); font-size: 12px; }
-    </style>
+    <link rel="stylesheet" href="option.css">
 </head>
 <body>
     <div class="page">
@@ -411,191 +17,147 @@
                 <span class="pill">Order matters · Dupliquez les effets si besoin</span>
                 <button class="btn" id="save-settings">Save & Apply</button>
                 <a href="index.html" class="btn secondary">Back to Player</a>
+                <button id="toggle-log-btn" title="Afficher les logs (L)">🧪</button>
             </div>
         </div>
 
         <div id="settings-panel">
+            <!-- Card principale contenant les sous-cards en colonnes -->
             <div class="card">
                 <div class="section-title">
-                    <span>General Configuration</span>
+                    <span>Configuration</span>
                 </div>
-                <div class="main-settings">
-                    <div class="form-group">
-                        <label>Keywords (comma separated)</label>
-                        <input type="text" id="keywords">
-                    </div>
-                    <div class="form-group">
-                        <label>Playlist URL (optional)</label>
-                        <input type="text" id="playlist-url">
-                    </div>
-                    <div class="form-group">
-                        <label>Fichier local (upload)</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="file" id="local-file-input" accept="video/*" style="flex: 1;">
-                            <button class="btn secondary" id="upload-file-btn">Upload</button>
+                <div class="config-grid">
+                    <!-- Card Modes -->
+                    <div class="card">
+                        <div class="section-title">
+                            <span>Modes de génération</span>
                         </div>
-                        <div id="upload-status" style="margin-top: 5px; font-size: 12px; color: var(--muted);"></div>
-                        <select id="local-file-select" style="margin-top: 8px; width: 100%; display: none;">
-                            <option value="">Utiliser YouTube</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Duration (seconds)</label>
-                        <input type="number" id="duration">
-                    </div>
-                    <div class="form-group">
-                        <label>Duration Variation (+/- seconds)</label>
-                        <input type="number" id="duration-variation">
-                    </div>
-                    <div class="form-group">
-                        <label>Video Quality</label>
-                        <select id="video-quality">
-                            <option value="best">Best Available</option>
-                            <option value="1080p">1080p</option>
-                            <option value="720p">720p</option>
-                            <option value="480p">480p</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label><input type="checkbox" id="include-reels" checked> Include Shorts/Reels</label>
-                    </div>
-                    <div class="form-group">
-                        <label>Min plays before next clip</label>
-                        <input type="number" id="min-replays" min="1" step="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Playback Speed (x)</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <input type="range" id="playback-speed" min="0.1" max="4.0" step="0.1" value="1.0" style="flex:1">
-                            <span id="playback-speed-val" class="value-chip">1.0</span>
+                        <div class="main-settings">
+                            <div class="form-group">
+                                <label>Mode de sélection</label>
+                                <div class="mode-selection">
+                                    <label class="toggle">
+                                        <input type="checkbox" id="random-preset-mode">
+                                        <span>Random preset</span>
+                                    </label>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="freestyle-mode">
+                                        <span>Freestyle mode</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group" id="freestyle-keywords-row">
+                                <label>Mots-clés freestyle (séparés par des virgules)</label>
+                                <input type="text" id="freestyle-keywords" placeholder="glitch art, datamosh, vaporwave">
+                                <div class="hint">Utilisés seulement quand Freestyle est activé.</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label><input type="checkbox" id="random-preset-mode"> Random Preset Mode</label>
-                    </div>
-                    <div class="form-group">
-                        <label><input type="checkbox" id="freestyle-mode"> Freestyle Mode</label>
-                    </div>
-                </div>
-            </div>
 
-            <div class="card">
-                <div class="section-title">
-                    <span>Presets</span>
-                </div>
-                <div class="main-settings">
-                    <div class="form-group">
-                        <label>Load Preset</label>
-                        <div style="display: flex; gap: 8px;">
-                            <select id="preset-select">
-                                <option value="">Select a preset...</option>
-                            </select>
-                            <button class="btn secondary" id="load-preset">Load</button>
-                            <button class="btn danger" id="delete-preset">Delete</button>
+                    <!-- Card Tools -->
+                    <div class="card">
+                        <div class="section-title">
+                            <span>Tools</span>
+                        </div>
+                        <div class="main-settings">
+                            <div class="form-group">
+                                <label>Génération</label>
+                                <div class="tools-buttons">
+                                    <button class="btn sm" id="generate-now-reset-timer">⚡ Générer maintenant</button>
+                                    <button class="btn sm" id="generate-preview">▶ Générer & prévisualiser</button>
+                                    <button class="btn sm" id="pause-generation">⏸️ Pause génération</button>
+                                    <button class="btn danger sm" id="kill-generation">⏹️ Tuer génération</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Nettoyage</label>
+                                <div class="tools-buttons">
+                                    <button class="btn danger sm" id="cleanup-storage">🧹 Vider temp/hls</button>
+                                    <button class="btn danger sm" id="cleanup-uploads">🗑️ Vider uploads</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Save Current Chain As</label>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" id="new-preset-name" placeholder="Preset Name">
-                            <button class="btn secondary" id="save-preset">Save</button>
+
+                    <!-- Card Mode Batch -->
+                    <div class="card">
+                        <div class="section-title">
+                            <span>Mode Batch / Rotation</span>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Tools</label>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button class="btn secondary" id="randomize-chain">🎲 Randomize Chain</button>
-                            <button class="btn secondary" id="export-preset-btn">📤 Export Preset</button>
-                            <button class="btn secondary" id="import-preset-btn">📥 Import Preset</button>
-                            <input type="file" id="import-preset-input" accept=".json" style="display: none;">
+                        <div class="main-settings">
+                            <div class="form-group">
+                                <label>Configuration</label>
+                                <div class="batch-config">
+                                    <label class="toggle">
+                                        <input type="checkbox" id="batch-mode">
+                                        <span>Activer mode Batch</span>
+                                    </label>
+                                    <div class="batch-input-group">
+                                        <label class="batch-label">Taille Batch:</label>
+                                        <input type="number" id="batch-size" class="batch-input" min="1" max="20" value="3">
+                                    </div>
+                                    <div class="batch-input-group">
+                                        <label class="batch-label">Intervalle (min):</label>
+                                        <input type="number" id="batch-interval" class="batch-input" min="1" max="120" value="5">
+                                    </div>
+                                </div>
+                                <div class="hint">En mode Batch, X clips sont générés et tournent en boucle pendant Y minutes avant d'être remplacés par un nouveau batch.</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Historique et Export -->
-            <div class="card">
-                <div class="section-title">
-                    <span>Historique & Export</span>
-                </div>
-                <div class="main-settings">
-                    <div class="form-group">
-                        <label>Historique des clips</label>
-                        <div id="history-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: #0b111d;">
-                            <div style="color: var(--muted); font-size: 12px; text-align: center;">Chargement...</div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Exports</label>
-                        <div id="exports-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: #0b111d;">
-                            <div style="color: var(--muted); font-size: 12px; text-align: center;">Chargement...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
+            <div class="card node-card">
                 <div class="section-title">
                     <span>Effect Chain (order matters)</span>
-                    <span class="hint">Right-click pour ajouter un nœud. Dupliquez les effets si besoin.</span>
+                    <div class="view-toggle" id="view-toggle">
+                        <button class="view-toggle-btn active" data-view="list" id="view-list-btn">📋 Liste</button>
+                        <button class="view-toggle-btn" data-view="canvas" id="view-canvas-btn">🎨 Canvas</button>
+                    </div>
+                    <span class="hint" id="canvas-hint">Clic droit pour ajouter · Molette pour zoomer · Glisser le fond pour déplacer la vue.</span>
                 </div>
-                <div class="node-canvas">
-                    <div class="node-row" id="effect-chain">
-                        <!-- Populated by JS -->
+                <div class="node-toolbar">
+                    <div class="add-toolbar">
+                        <select id="quick-effect-select" class="slim-select">
+                            <option value="">Sélectionnez un effet...</option>
+                        </select>
+                        <button class="btn sm" id="add-effect-btn">+ Ajouter</button>
+                        <button class="btn ghost sm" id="reset-viewport">Réinitialiser la vue</button>
+                        <button class="btn secondary sm" id="randomize-chain">🎲 Randomize</button>
+                        <select id="preset-select-toolbar" style="min-width: 160px; max-width: 200px; padding: 8px 10px; background: #0b111d; border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px;">
+                            <option value="">Select preset...</option>
+                        </select>
+                        <button class="btn secondary sm" id="new-preset-toolbar">✨ New</button>
+                        <button class="btn secondary sm" id="load-preset-toolbar">📂 Load</button>
+                        <button class="btn secondary sm" id="save-preset-toolbar">💾 Save</button>
+                        <button class="btn danger sm" id="delete-preset-toolbar">🗑️ Delete</button>
+                        <button class="btn secondary sm" id="export-preset-btn">📤 Export</button>
+                        <button class="btn secondary sm" id="import-preset-btn">📥 Import</button>
+                        <input type="file" id="import-preset-input" accept=".json" style="display: none;">
+                        <div id="zoom-controls" class="zoom-controls">
+                            <label>Zoom:</label>
+                            <input type="range" id="zoom-slider" class="zoom-slider" min="45" max="190" value="90" step="5">
+                            <span id="zoom-value" class="zoom-value">90%</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Contrôles vidéo -->
-            <div class="card">
-                <div class="section-title">
-                    <span>Contrôles vidéo</span>
+                <div class="chain-list-view" id="chain-list-view">
+                    <!-- Populated by JS -->
                 </div>
-                <div id="video-controls-container" style="padding: 10px 0;">
-                    <div class="controls-row" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                        <button id="play-pause-btn" class="btn" title="Play/Pause">⏯ Play/Pause</button>
-                        <div class="progress-container" style="flex: 1; min-width: 200px; display: flex; align-items: center; gap: 10px;">
-                            <div id="progress-bar" style="flex: 1; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; cursor: pointer; position: relative; overflow: hidden;">
-                                <div id="progress-filled" style="height: 100%; background: var(--accent); width: 0%; transition: width 0.1s; border-radius: 3px;"></div>
+                <div class="node-canvas active" id="node-canvas">
+                    <div id="node-stage" class="node-stage">
+                        <div id="node-viewport" class="node-viewport">
+                            <svg id="node-links" class="node-links" viewBox="0 0 3200 1800" preserveAspectRatio="xMinYMin slice"></svg>
+                            <div class="node-row node-layer" id="effect-chain">
+                                <!-- Populated by JS -->
                             </div>
-                            <span id="time-display" style="color: var(--muted); font-size: 12px; min-width: 80px; text-align: right; font-family: monospace;">0:00 / 0:00</span>
                         </div>
-                        <div class="volume-container" style="display: flex; align-items: center; gap: 8px;">
-                            <button id="mute-btn" class="btn secondary" title="Mute/Unmute">🔊</button>
-                            <input type="range" id="volume-slider" style="width: 100px; accent-color: var(--accent);" min="0" max="100" value="100" title="Volume">
-                        </div>
-                        <button id="fullscreen-btn" class="btn secondary" title="Plein écran">⛶ Plein écran</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Statistiques -->
-            <div class="card">
-                <div class="section-title">
-                    <span>Statistiques</span>
-                </div>
-                <div id="stats-content" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div class="stat-item" style="display: flex; flex-direction: column; gap: 5px;">
-                        <span style="color: var(--muted); font-size: 12px;">Clips joués</span>
-                        <span id="stat-clips" style="color: var(--accent); font-weight: bold; font-size: 18px; font-family: monospace;">0</span>
-                    </div>
-                    <div class="stat-item" style="display: flex; flex-direction: column; gap: 5px;">
-                        <span style="color: var(--muted); font-size: 12px;">Temps total</span>
-                        <span id="stat-time" style="color: var(--accent); font-weight: bold; font-size: 18px; font-family: monospace;">0s</span>
-                    </div>
-                    <div class="stat-item" style="display: flex; flex-direction: column; gap: 5px;">
-                        <span style="color: var(--muted); font-size: 12px;">Aujourd'hui</span>
-                        <span id="stat-today" style="color: var(--accent); font-weight: bold; font-size: 18px; font-family: monospace;">0 clips</span>
-                    </div>
-                    <div class="stat-item" style="display: flex; flex-direction: column; gap: 5px;">
-                        <span style="color: var(--muted); font-size: 12px;">Session</span>
-                        <span id="stat-session" style="color: var(--accent); font-weight: bold; font-size: 18px; font-family: monospace;">0s</span>
-                    </div>
-                </div>
-                <div style="margin-top: 15px;">
-                    <button id="reset-stats-btn" class="btn danger">Réinitialiser les statistiques</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -603,6 +165,29 @@
 
     <div id="toast" class="toast">Saved</div>
 
-    <script src="option.js?v=7"></script>
+    <div id="log-panel">
+        <header>
+            <span>API Logs (L)</span>
+            <span class="badge" id="log-status">OFF</span>
+        </header>
+        <div class="progress-block">
+            <div class="progress-row">
+                <span>Download</span>
+                <div class="progress-bar"><div class="progress-fill" id="prog-dl"></div></div>
+            </div>
+            <div class="progress-row">
+                <span>Processing</span>
+                <div class="progress-bar"><div class="progress-fill" id="prog-proc"></div></div>
+            </div>
+            <div id="progress-status"></div>
+        </div>
+        <div id="workers-section">
+            <h4>Workers actifs</h4>
+            <div id="workers-list"></div>
+        </div>
+        <pre id="log-content"></pre>
+    </div>
+
+    <script src="option.js?v=17"></script>
 </body>
 </html>
